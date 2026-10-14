@@ -28,12 +28,12 @@ import java.util.List;
  *
  *  Backend       : /getbillcategories , /getmyaccounts , /paybill , /getbillhistory
  *
- *  VULNERABILITY  : RASP-VULN-004 - missing input validation, on the client
+ *  VULNERABILITY  : VULN-004 - missing input validation, on the client
  *                   (doPayBill) and on the server (AndroLabServer/app.py :: paybill).
  *                   See the block comment above doPayBill().
  * ===========================================================================================
  */
-public class BillPaymentActivity extends RaspBankActivity {
+public class BillPaymentActivity extends BankActivity {
 
     private Spinner categorySpinner;
     private Spinner accountSpinner;
@@ -96,7 +96,6 @@ public class BillPaymentActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    RaspEvent.error("BillPaymentActivity", uname, opId, "categories rejected");
                     return;
                 }
                 try {
@@ -113,15 +112,12 @@ public class BillPaymentActivity extends RaspBankActivity {
                     categorySpinner.setAdapter(a);
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("BillPaymentActivity", uname, opId,
-                            "categories parse: " + e.getMessage());
                 }
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("BillPaymentActivity", uname, opId, "categories transport " + message);
             }
         });
     }
@@ -132,7 +128,6 @@ public class BillPaymentActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    RaspEvent.error("BillPaymentActivity", uname, opId, "accounts rejected");
                     return;
                 }
                 try {
@@ -151,15 +146,12 @@ public class BillPaymentActivity extends RaspBankActivity {
                     accountSpinner.setAdapter(adapter);
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("BillPaymentActivity", uname, opId,
-                            "accounts parse: " + e.getMessage());
                 }
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("BillPaymentActivity", uname, opId, "accounts transport " + message);
             }
         });
     }
@@ -167,7 +159,7 @@ public class BillPaymentActivity extends RaspBankActivity {
     /* ====================================================================== payment */
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-004
+     *  VULNERABILITY ID : VULN-004
      *  FEATURE          : 4 - Bill Payment
      *  TYPE             : CWE-20 Improper Input Validation
      *  COMPONENT        : BillPaymentActivity.doPayBill()  (client)
@@ -182,9 +174,6 @@ public class BillPaymentActivity extends RaspBankActivity {
      *                     non numeric. The request is sent anyway and the server answers
      *                     "Bill Payment Successful", so a malformed payment is stored as a
      *                     legitimate one.
-     *  RUNTIME EVENTS   : BILL_PAYMENT with result=success and a detail that carries
-     *                     amount="<raw text>", amount_numeric=false and bill_len=<n>, which
-     *                     is the observable signature of the attack.
      *  REPRODUCE        : log in -> Bill Payment, then either
      *                       a) type   '  OR  1=1--   into "Bill / consumer number" and
      *                          1000 into the amount and press "Pay Bill"
@@ -206,13 +195,6 @@ public class BillPaymentActivity extends RaspBankActivity {
         final String rawBillNumber = billNumber.getText().toString();
         final String rawAmount = amount.getText().toString();
 
-        RaspEvent.ok(RaspEvent.BILL_PAYMENT, "BillPaymentActivity", uname, opId,
-                "stage=submit category=" + category
-                        + " account=" + payerAccount
-                        + " bill_len=" + rawBillNumber.length()
-                        + " amount=\"" + rawAmount + "\""
-                        + " amount_numeric=" + isNumeric(rawAmount));
-
         List<NameValuePair> params = authParams();
         addParam(params, "category", category);
         addParam(params, "bill_number", rawBillNumber);
@@ -233,13 +215,6 @@ public class BillPaymentActivity extends RaspBankActivity {
                         reference = "";
                     }
                 }
-                RaspEvent.log(RaspEvent.BILL_PAYMENT, "BillPaymentActivity", uname,
-                        ok ? RaspEvent.RESULT_SUCCESS : RaspEvent.RESULT_FAILURE, opId,
-                        "stage=result category=" + category
-                                + " amount=\"" + rawAmount + "\""
-                                + " amount_numeric=" + isNumeric(rawAmount)
-                                + " bill_len=" + rawBillNumber.length()
-                                + " reference=" + reference);
                 if (ok) {
                     result.setText("Payment successful. Reference " + reference);
                     Toasteroid.show(BillPaymentActivity.this, "Bill payment successful",
@@ -255,8 +230,6 @@ public class BillPaymentActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.BILL_PAYMENT, "BillPaymentActivity", uname, opId,
-                        "stage=result transport=" + message);
                 result.setText("Server not reachable");
             }
         });
@@ -270,11 +243,8 @@ public class BillPaymentActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    RaspEvent.fail(RaspEvent.BILL_PAYMENT_HISTORY_VIEW, "BillPaymentActivity",
-                            uname, opId, "server rejected the request");
                     return;
                 }
-                int count = 0;
                 try {
                     JSONArray arr = new JSONObject(body).optJSONArray("payments");
                     List<String> rows = new ArrayList<String>();
@@ -285,7 +255,6 @@ public class BillPaymentActivity extends RaspBankActivity {
                                     + " | " + p.optString("amount")
                                     + " | bill " + p.optString("bill_number")
                                     + " | " + p.optString("status"));
-                            count++;
                         }
                     }
                     historyAdapter.clear();
@@ -293,31 +262,14 @@ public class BillPaymentActivity extends RaspBankActivity {
                     historyAdapter.notifyDataSetChanged();
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("BillPaymentActivity", uname, opId,
-                            "history parse: " + e.getMessage());
                 }
-                RaspEvent.ok(RaspEvent.BILL_PAYMENT_HISTORY_VIEW, "BillPaymentActivity",
-                        uname, opId, "rows=" + count);
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("BillPaymentActivity", uname, opId, "history transport " + message);
             }
         });
     }
 
-    /** @return true only for a plain, non negative integer - reported to the event stream. */
-    private static boolean isNumeric(String s) {
-        if (s == null || s.length() == 0) {
-            return false;
-        }
-        for (int i = 0; i < s.length(); i++) {
-            if (!Character.isDigit(s.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
 }

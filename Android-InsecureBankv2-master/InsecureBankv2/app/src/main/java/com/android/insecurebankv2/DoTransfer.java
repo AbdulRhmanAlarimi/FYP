@@ -110,15 +110,13 @@ public class DoTransfer extends Activity {
 			}
 		});
 
-		//	IntelliRASP research - "Pick Beneficiary" opens the beneficiary manager in
-		//	picker mode so a registered beneficiary can be used as the transfer target.
+		//	"Pick Beneficiary" opens the beneficiary manager in picker mode so a
+		//	registered beneficiary can be used as the transfer target.
 		Button pickBeneficiary = (Button) findViewById(R.id.button_PickBeneficiary);
 		pickBeneficiary.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				// TODO Auto-generated method stub
-				RaspEvent.ok(RaspEvent.NAVIGATE, "DoTransfer", BankSession.getUsername(DoTransfer.this),
-						RaspEvent.newOpId(), "to=Beneficiary mode=pick");
 				Intent i = new Intent(getApplicationContext(), BeneficiaryActivity.class);
 				i.putExtra("uname", BankSession.getUsername(DoTransfer.this));
 				i.putExtra(BeneficiaryActivity.EXTRA_SELECT_MODE, true);
@@ -142,8 +140,6 @@ public class DoTransfer extends Activity {
 		}
 		EditText toField = (EditText) findViewById(R.id.editText_to);
 		toField.setText(account);
-		RaspEvent.ok(RaspEvent.BENEFICIARY_SELECT, "DoTransfer", BankSession.getUsername(this),
-				RaspEvent.newOpId(), "account=" + account + " applied_to=to_field");
 		Toasteroid.show(this, "Beneficiary applied", Toasteroid.STYLES.SUCCESS,
 				Toasteroid.LENGTH_SHORT);
 	}
@@ -235,12 +231,6 @@ public class DoTransfer extends Activity {
 								acc1 = jsonObject.getString("from");
 								acc2 = jsonObject.getString("to");
 								System.out.println("Message:" + jsonObject.getString("message") + " From:" + from.getText().toString() + " To:" + to.getText().toString() + " Amount:" + amount.getText().toString());
-								//	IntelliRASP research - transfer outcome, no credentials in the event
-								RaspEvent.ok(RaspEvent.TRANSFER, "DoTransfer", usernameBase64ByteString,
-										RaspEvent.newOpId(),
-										"from=" + from.getText().toString()
-												+ " to=" + to.getText().toString()
-												+ " amount=" + amount.getText().toString());
 								final String status = new String("\nMessage:" + "Success" + " From:" + from.getText().toString() + " To:" + to.getText().toString() + " Amount:" + amount.getText().toString() + "\n");
 								try {
 									//	Captures the successful transaction status for Transaction history tracking
@@ -259,12 +249,6 @@ public class DoTransfer extends Activity {
 						} else {
                             Toasteroid.show(DoTransfer.this, "Transfer Failed!!", Toasteroid.STYLES.ERROR, Toasteroid.LENGTH_SHORT);
 
-                            //	IntelliRASP research - failed transfer
-							RaspEvent.fail(RaspEvent.TRANSFER, "DoTransfer", usernameBase64ByteString,
-									RaspEvent.newOpId(),
-									"from=" + from.getText().toString()
-											+ " to=" + to.getText().toString()
-											+ " amount=" + amount.getText().toString());
                             System.out.println("Message:" + "Failure" + " From:" + from.getText().toString() + " To:" + to.getText().toString() + " Amount:" + amount.getText().toString());
 							final String status = new String("\nMessage:" + "Failure" + " From:" + from.getText().toString() + " To:" + to.getText().toString() + " Amount:" + amount.getText().toString() + "\n");
 							//   Captures the failed transaction status for Transaction history tracking

@@ -53,11 +53,10 @@
          Declared private (no intent-filter, exported defaults to false): registration is a
          deliberate in-app action by the person standing in front of the device, not a
          privileged operation another app should be able to drive. Note the contrast with
-         BeneficiaryActivity below, which is exported on purpose - see RASP-VULN-003.
+         BeneficiaryActivity below, which is exported on purpose - see VULN-003.
 
          This screen is NOT a vulnerability and must not be turned into one; the rules it
-         enforces are documented in AndroLabServer/app.py::validate_signup() and in
-         docs/INTENTIONAL_VULNERABILITIES.md.
+         enforces are documented in AndroLabServer/app.py::validate_signup().
         =========================================================================================
         -->
         <activity
@@ -108,7 +107,7 @@
 
         <!--
         =========================================================================================
-         IntelliRASP FYP build - six added features.
+         Six added features.
 
          Except for BeneficiaryActivity every one of these screens is private to the
          application (no intent-filter, exported defaults to false), so the new functionality
@@ -127,7 +126,7 @@
 
         <!--
         =========================================================================================
-         RASP-VULN-003 : INTENTIONAL MISCONFIGURATION, DO NOT "FIX" IN PRODUCTION
+         VULN-003 : INTENTIONAL MISCONFIGURATION, DO NOT "FIX" IN PRODUCTION
         =========================================================================================
          BeneficiaryActivity is declared exported and given an intent filter with no
          permission attribute, so any application on the device can start it and hand it
@@ -136,7 +135,6 @@
 
          CWE-926 Improper Export of Android Application Components / CWE-862 Missing
          Authorization.  Full description and reproduction steps:
-             docs/INTENTIONAL_VULNERABILITIES.md  (RASP-VULN-003)
              BeneficiaryActivity.handleExternalAutofill()
 
          To harden the build, delete android:exported / the intent-filter and set

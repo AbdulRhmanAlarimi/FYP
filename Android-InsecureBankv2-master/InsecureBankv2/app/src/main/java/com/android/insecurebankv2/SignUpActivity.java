@@ -31,27 +31,20 @@ import java.util.regex.Pattern;
  *  NO INTENTIONAL VULNERABILITY
  *  ---------------------------
  *  Signup is the one screen of this build that is deliberately well behaved, and it must
- *  stay that way: docs/INTENTIONAL_VULNERABILITIES.md lists exactly six findings and
- *  signup is not one of them. The checks below mirror AndroLabServer/app.py::validate_signup()
+ *  stay that way. The checks below mirror AndroLabServer/app.py::validate_signup()
  *  so the user gets immediate feedback, but the server is the authority - it re-validates
  *  everything and its rejection message is what the screen shows.
  *
  *  PASSWORD HANDLING
  *  -----------------
- *  The plaintext password never reaches RaspEvent, never reaches the log and is never put
- *  in an Intent. `detail` only ever carries lengths and boolean flags, exactly like the
- *  pre-existing PASSWORD_CHANGE event. The username *is* carried: it is the label of the
- *  trace and, at this point in the flow, it is data the user is inventing rather than
- *  data that was disclosed.
+ *  The plaintext password never reaches the log and is never put in an Intent.
  * ===========================================================================================
  */
-public class SignUpActivity extends RaspBankActivity {
+public class SignUpActivity extends BankActivity {
 
     /** same rules as SIGNUP_USERNAME_RE in AndroLabServer/app.py */
     private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{3,50}$");
     private static final int MIN_PASSWORD = 6;
-
-    private static final String COMPONENT = "SignUpActivity";
 
     private EditText username;
     private EditText password;
@@ -92,7 +85,6 @@ public class SignUpActivity extends RaspBankActivity {
         //  backend address has been configured.
         if (!BankSession.isServerConfigured(this)) {
             toast("Server path/port not set!!", false);
-            RaspEvent.error(COMPONENT, "anonymous", opId, "server address not configured");
             startActivity(new Intent(this, FilePrefActivity.class));
             finish();
         }
@@ -133,22 +125,12 @@ public class SignUpActivity extends RaspBankActivity {
 
         final String problem = checkForm(user, pass, pass2);
         if (problem != null) {
-            RaspEvent.fail(RaspEvent.SIGNUP_FAILURE, COMPONENT, user, opId,
-                    "stage=client reason=policy username_len=" + user.length()
-                            + " password_len=" + pass.length()
-                            + " password_confirmed=" + pass.equals(pass2));
             status.setText(problem);
             toast(problem, false);
             return;
         }
 
         status.setText("Creating your account...");
-
-        RaspEvent.ok(RaspEvent.SIGNUP_ATTEMPT, COMPONENT, user, opId,
-                "username_len=" + user.length()
-                        + " password_len=" + pass.length()
-                        + " password_confirmed=true"
-                        + " has_email=" + (email.getText().toString().trim().length() > 0));
 
         List<NameValuePair> params = new java.util.ArrayList<NameValuePair>(8);
         addParam(params, "username", user);
@@ -170,9 +152,6 @@ public class SignUpActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.SIGNUP_FAILURE, COMPONENT, user, opId,
-                        "stage=server reason=transport");
-                RaspEvent.error(COMPONENT, user, opId, "signup transport " + message);
                 status.setText("Could not reach the server");
                 toast("Could not reach the server", false);
             }
@@ -184,15 +163,10 @@ public class SignUpActivity extends RaspBankActivity {
             //  The server refused. Its message is already free of anything sensitive, so it
             //  is both shown to the user and recorded as the reason.
             String reason = extractMessage(body);
-            RaspEvent.fail(RaspEvent.SIGNUP_FAILURE, COMPONENT, user, opId,
-                    "stage=server reason=rejected server=\"" + reason + "\"");
             status.setText(reason);
             toast(reason, false);
             return;
         }
-
-        RaspEvent.ok(RaspEvent.SIGNUP_SUCCESS, COMPONENT, user, opId,
-                "stage=server accounts_provisioned=2");
 
         status.setText("Account created, you can log in now");
         toast("Account created", true);
@@ -219,8 +193,6 @@ public class SignUpActivity extends RaspBankActivity {
                     "The account could not be created");
         } catch (org.json.JSONException e) {
             // TODO Auto-generated catch block
-            RaspEvent.error(COMPONENT, "anonymous", RaspEvent.newOpId(),
-                    "signup response parse: " + e.getMessage());
             return "The account could not be created";
         }
     }
@@ -228,15 +200,11 @@ public class SignUpActivity extends RaspBankActivity {
     /* ============================================================================== menu */
 
     /**
-     * This screen runs before authentication, so there may be no session to end. Only the
-     * LOGOUT event is conditional on one existing; the credential wipe and the bounce to
-     * the login screen are unconditional.
+     * This screen runs before authentication, so there may be no session to end. The
+     * credential wipe and the bounce to the login screen are unconditional.
      */
     @Override
     protected void performLogout() {
-        if (BankSession.isLoggedIn(this)) {
-            RaspEvent.ok(RaspEvent.LOGOUT, COMPONENT, uname, opId, "menu=restart");
-        }
         BankSession.clear(this);
         Intent i = new Intent(getBaseContext(), LoginActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);

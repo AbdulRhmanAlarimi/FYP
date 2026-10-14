@@ -30,13 +30,13 @@ import java.util.List;
  *
  *  Backend  : /getmyaccounts , /deposit
  *
- *  VULNERABILITY : RASP-VULN-006 - business logic / missing authorization. The screen can
+ *  VULNERABILITY : VULN-006 - business logic / missing authorization. The screen can
  *                  be pointed at an account that does not belong to the caller and the
  *                  amount is never checked for sign or magnitude. See doDeposit() and
  *                  AndroLabServer/app.py :: deposit().
  * ===========================================================================================
  */
-public class DepositActivity extends RaspBankActivity {
+public class DepositActivity extends BankActivity {
 
     private Spinner accountSpinner;
     private EditText accountOverride;
@@ -110,7 +110,6 @@ public class DepositActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    RaspEvent.error("DepositActivity", uname, opId, "accounts rejected");
                     return;
                 }
                 try {
@@ -127,12 +126,8 @@ public class DepositActivity extends RaspBankActivity {
                             android.R.layout.simple_spinner_item, myAccounts);
                     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                     accountSpinner.setAdapter(adapter);
-                    RaspEvent.ok(RaspEvent.BALANCE_VIEW, "DepositActivity", uname, opId,
-                            "accounts=" + myAccounts.size());
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("DepositActivity", uname, opId,
-                            "accounts parse: " + e.getMessage());
                 }
                 loadRecentDeposits();
             }
@@ -140,7 +135,6 @@ public class DepositActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("DepositActivity", uname, opId, "accounts transport " + message);
             }
         });
     }
@@ -171,15 +165,12 @@ public class DepositActivity extends RaspBankActivity {
                     listAdapter.notifyDataSetChanged();
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("DepositActivity", uname, opId,
-                            "deposits parse: " + e.getMessage());
                 }
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("DepositActivity", uname, opId, "deposits transport " + message);
             }
         });
     }
@@ -187,7 +178,7 @@ public class DepositActivity extends RaspBankActivity {
     /* ======================================================================== deposit */
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-006
+     *  VULNERABILITY ID : VULN-006
      *  FEATURE          : 6 - Deposit Money
      *  TYPE             : CWE-862 Missing Authorization combined with CWE-20 Improper
      *                     Input Validation (business logic)
@@ -202,11 +193,6 @@ public class DepositActivity extends RaspBankActivity {
      *                     caller, so any account in the fixture can be credited by any
      *                     logged in customer. The amount is additionally accepted with a
      *                     negative sign, which reverses the direction of the movement.
-     *  RUNTIME EVENTS   : DEPOSIT with result=success and a detail that carries
-     *                     account=<n> owner_accounts=<a,b,c> foreign_account=true/false
-     *                     amount="<raw>" amount_numeric=<bool> negative=<bool>.
-     *                     `foreign_account=true` together with a success is the observable
-     *                     signature of the attack; it never occurs in the benign workflow.
      *  REPRODUCE        : log in as dinesh -> Deposit Money, then
      *                       a) type 555555555 (jack's account) into
      *                          "Or enter another account number" and 5000 into the amount
@@ -226,16 +212,6 @@ public class DepositActivity extends RaspBankActivity {
                 ? override
                 : (picked == null ? "" : String.valueOf(picked).split(" ")[0]);
         final String rawAmount = amount.getText().toString();
-
-        final boolean foreign = !myAccounts.isEmpty() && !isOwnedByCaller(accountNumber);
-        final boolean negative = rawAmount.startsWith("-");
-
-        RaspEvent.ok(RaspEvent.DEPOSIT, "DepositActivity", uname, opId,
-                "stage=submit account=" + accountNumber
-                        + " foreign_account=" + foreign
-                        + " amount=\"" + rawAmount + "\""
-                        + " amount_numeric=" + isNumeric(rawAmount)
-                        + " negative=" + negative);
 
         List<NameValuePair> params = authParams();
         addParam(params, "account_number", accountNumber);
@@ -258,20 +234,10 @@ public class DepositActivity extends RaspBankActivity {
                         newBalance = "";
                     }
                 }
-                RaspEvent.log(RaspEvent.DEPOSIT, "DepositActivity", uname,
-                        ok ? RaspEvent.RESULT_SUCCESS : RaspEvent.RESULT_FAILURE, opId,
-                        "stage=result account=" + account
-                                + " foreign_account=" + foreign
-                                + " amount=\"" + rawAmount + "\""
-                                + " amount_numeric=" + isNumeric(rawAmount)
-                                + " negative=" + negative
-                                + " balance=" + newBalance);
                 if (ok) {
                     result.setText("Deposit successful. New balance: " + newBalance);
                     Toasteroid.show(DepositActivity.this, "Deposit successful",
                             Toasteroid.STYLES.SUCCESS, Toasteroid.LENGTH_SHORT);
-                    RaspEvent.ok(RaspEvent.BALANCE_VIEW, "DepositActivity", uname, opId,
-                            "account=" + account + " balance=" + newBalance);
                 } else {
                     result.setText("Deposit could not be completed");
                     Toasteroid.show(DepositActivity.this, "Deposit failed",
@@ -283,33 +249,8 @@ public class DepositActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.DEPOSIT, "DepositActivity", uname, opId,
-                        "stage=result transport=" + message);
                 result.setText("Server not reachable");
             }
         });
-    }
-
-    /* =========================================================================== utils */
-
-    private boolean isOwnedByCaller(String accountNumber) {
-        for (String row : myAccounts) {
-            if (row.startsWith(accountNumber + " ")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isNumeric(String s) {
-        if (s == null || s.length() == 0) {
-            return false;
-        }
-        for (int i = 0; i < s.length(); i++) {
-            if (!Character.isDigit(s.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
     }
 }

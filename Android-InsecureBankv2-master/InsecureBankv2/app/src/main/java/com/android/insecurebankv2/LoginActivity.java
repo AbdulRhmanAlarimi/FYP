@@ -49,8 +49,6 @@ public class LoginActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		//	IntelliRASP research - starts the event stream and emits APP_START
-		RaspEvent.init(this);
 		setContentView(R.layout.activity_log_main);
 		String mess = getResources().getString(R.string.is_admin);
 		if (mess.equals("no")) {
@@ -118,8 +116,6 @@ public class LoginActivity extends Activity {
     This used to be the "still Work-In-Progress" stub of the original application.
     */
     protected void createUser() {
-        RaspEvent.ok(RaspEvent.NAVIGATE, "LoginActivity", "anonymous",
-                RaspEvent.newOpId(), "to=SignUpActivity");
         Intent i = new Intent(this, SignUpActivity.class);
         startActivityForResult(i, REQUEST_SIGN_UP);
     }
@@ -193,9 +189,6 @@ public class LoginActivity extends Activity {
 		// TODO Auto-generated method stub
 		Username_Text = (EditText) findViewById(R.id.loginscreen_username);
 		Password_Text = (EditText) findViewById(R.id.loginscreen_password);
-		//	IntelliRASP research - a login attempt is recorded, the password is NOT
-		RaspEvent.ok(RaspEvent.SERVER_REQUEST, "LoginActivity", "anonymous",
-				RaspEvent.newOpId(), "action=login_attempt user=" + Username_Text.getText());
 		Intent i = new Intent(this, DoLogin.class);
 		i.putExtra("passed_username", Username_Text.getText().toString());
 		i.putExtra("passed_password", Password_Text.getText().toString());

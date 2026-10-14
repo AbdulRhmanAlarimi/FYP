@@ -16,7 +16,7 @@ class User(Base):
     #  ---------------------------------------------------------------------------------
     #  Contact details backing the "Profile Management" feature (feature 5).
     #  Every seeded value below is FAKE test data, there is no real person behind it.
-    #  RASP-VULN-005 exposes these on the device only, never on this side.
+    #  VULN-005 exposes these on the device only, never on this side.
     #  ---------------------------------------------------------------------------------
     email = Column(String(120))
     phone = Column(String(40))
