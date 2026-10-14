@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.android.insecurebankv2" >
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
+    <!--
+     To retrieve OAuth 2.0 tokens or invalidate tokens to disconnect a user. This disconnect
+     option is required to comply with the Google+ Sign-In developer policies
+    -->
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" /> <!-- To retrieve the account name (email) as part of sign-in: -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" /> <!-- To auto-complete the email text field in the login form with the user's emails -->
+    <uses-permission android:name="android.permission.READ_PROFILE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <android:uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <android:uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="18" />
+    <android:uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@android:style/Theme.Holo.Light.DarkActionBar">
+        <!--
+        android:theme="@style/AppTheme"-->
+        <activity
+            android:name=".LoginActivity"
+            android:label="@string/app_name" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".FilePrefActivity"
+            android:label="@string/title_activity_file_pref"
+            android:windowSoftInputMode="stateVisible|adjustResize|adjustPan">
+        </activity>
+        <activity
+            android:name=".DoLogin"
+            android:label="@string/title_activity_do_login" >
+        </activity>
+        <!--
+        =========================================================================================
+         Self-service signup, opened from the "Create User" button on the login screen.
+
+         Declared private (no intent-filter, exported defaults to false): registration is a
+         deliberate in-app action by the person standing in front of the device, not a
+         privileged operation another app should be able to drive. Note the contrast with
+         BeneficiaryActivity below, which is exported on purpose - see RASP-VULN-003.
+
+         This screen is NOT a vulnerability and must not be turned into one; the rules it
+         enforces are documented in AndroLabServer/app.py::validate_signup() and in
+         docs/INTENTIONAL_VULNERABILITIES.md.
+        =========================================================================================
+        -->
+        <activity
+            android:name=".SignUpActivity"
+            android:label="@string/title_activity_signup"
+            android:windowSoftInputMode="stateVisible|adjustResize" >
+        </activity>
+        <activity
+            android:name=".PostLogin"
+            android:exported="true"
+            android:label="@string/title_activity_post_login" >
+        </activity>
+        <activity
+            android:name=".WrongLogin"
+            android:label="@string/title_activity_wrong_login" >
+        </activity>
+        <activity
+            android:name=".DoTransfer"
+            android:exported="true"
+            android:label="@string/title_activity_do_transfer" >
+        </activity>
+        <activity
+            android:name=".ViewStatement"
+            android:exported="true"
+            android:label="@string/title_activity_view_statement" >
+        </activity>
+
+        <provider
+            android:name=".TrackUserContentProvider"
+            android:authorities="com.android.insecurebankv2.TrackUserContentProvider"
+            android:exported="true" >
+        </provider>
+
+        <receiver
+            android:name=".MyBroadCastReceiver"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="theBroadcast" >
+                </action>
+            </intent-filter>
+        </receiver>
+
+        <activity
+            android:name=".ChangePassword"
+            android:exported="true"
+            android:label="@string/title_activity_change_password" >
+        </activity>
+
+        <!--
+        =========================================================================================
+         IntelliRASP FYP build - six added features.
+
+         Except for BeneficiaryActivity every one of these screens is private to the
+         application (no intent-filter, exported defaults to false), so the new functionality
+         cannot be reached from outside.
+        =========================================================================================
+        -->
+        <activity
+            android:name=".AccountDetailsActivity"
+            android:label="@string/title_activity_account_details" >
+        </activity>
+
+        <activity
+            android:name=".TransactionHistoryActivity"
+            android:label="@string/title_activity_transaction_history" >
+        </activity>
+
+        <!--
+        =========================================================================================
+         RASP-VULN-003 : INTENTIONAL MISCONFIGURATION, DO NOT "FIX" IN PRODUCTION
+        =========================================================================================
+         BeneficiaryActivity is declared exported and given an intent filter with no
+         permission attribute, so any application on the device can start it and hand it
+         the account to act on plus a pre-filled beneficiary. It is reachable through the
+         normal user interface as well.
+
+         CWE-926 Improper Export of Android Application Components / CWE-862 Missing
+         Authorization.  Full description and reproduction steps:
+             docs/INTENTIONAL_VULNERABILITIES.md  (RASP-VULN-003)
+             BeneficiaryActivity.handleExternalAutofill()
+
+         To harden the build, delete android:exported / the intent-filter and set
+         android:exported="false" - that is the fix, it is only absent here on purpose.
+        =========================================================================================
+        -->
+        <activity
+            android:name=".BeneficiaryActivity"
+            android:exported="true"
+            android:label="@string/title_activity_beneficiary" >
+            <intent-filter>
+                <action android:name="com.android.insecurebankv2.BENEFICIARY" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".BillPaymentActivity"
+            android:label="@string/title_activity_bill_payment" >
+        </activity>
+
+        <activity
+            android:name=".ProfileActivity"
+            android:label="@string/title_activity_profile" >
+        </activity>
+
+        <activity
+            android:name=".DepositActivity"
+            android:label="@string/title_activity_deposit" >
+        </activity>
+
+    </application>
+
+</manifest>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The post-login dashboard.
+
+    The nine feature entry points are a real GridView (2 columns) rather than the original
+    stack of full width rows, so the whole hub fits on one screen instead of needing a
+    scroll. Root status and Logout stay outside the grid: a status line is not a feature and
+    a destructive action does not belong in the middle of a tile grid.
+
+    The ids that PostLogin binds are unchanged - rootStatus and button_Logout are still real
+    views, and the nine cells still resolve to the same destinations with the same
+    RaspEvent.NAVIGATE "to=" values, so the recorded event traces are unaffected by the
+    layout change.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    tools:context="${relativePackage}.${activityClass}">
+
+    <TextView
+        android:id="@+id/rootStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Root Status"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="6dp"
+        android:textColor="#ff000fff" />
+
+    <GridView
+        android:id="@+id/dashboard_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:numColumns="2"
+        android:stretchMode="columnWidth"
+        android:columnWidth="140dp"
+        android:horizontalSpacing="10dp"
+        android:verticalSpacing="12dp"
+        android:gravity="center"
+        android:scrollbars="none"
+        android:drawSelectorOnTop="false" />
+
+    <Button
+        android:id="@+id/button_Logout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Logout"
+        android:padding="12dp"
+        android:textColor="@color/wallet_bright_foreground_holo_dark"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:background="@drawable/roundbutton" />
+
+</LinearLayout>
