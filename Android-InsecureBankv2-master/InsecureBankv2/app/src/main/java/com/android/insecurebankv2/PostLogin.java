@@ -34,9 +34,8 @@ View Statement: Module that allows the user to view transaction history for the 
 Change Password:  Module that allows the logged in user to change the password
 
 The nine destinations are laid out as a 2 column GridView instead of the original stack of
-full width rows, so the whole hub fits on one screen. The destination list, the order, the
-RaspEvent.NAVIGATE "to=" values and the intents themselves are unchanged, so the recorded
-event traces are identical to the ones the research dataset was built from.
+full width rows, so the whole hub fits on one screen. The destination list, the order and
+the intents themselves are unchanged.
 @author Dinesh Shetty
 */
 public class PostLogin extends Activity {
@@ -61,8 +60,8 @@ public class PostLogin extends Activity {
         //	Display emulator status
         checkEmulatorStatus();
 
-		//	IntelliRASP research - the six added features of this FYP build plus the three
-		//	pre-existing ones, all reached through the same grid.
+		//	The six added features of this build plus the three pre-existing ones, all
+		//	reached through the same grid.
 		final List<Tile> tiles = buildTiles();
 		dashboard_grid = (GridView) findViewById(R.id.dashboard_grid);
 		dashboard_grid.setAdapter(new DashboardAdapter(this, tiles));
@@ -88,9 +87,8 @@ public class PostLogin extends Activity {
 	/*
 	One destination on the dashboard.
 
-	`tag` is what goes into the RaspEvent.NAVIGATE detail as "to=" and must keep matching the
-	value the original listeners emitted, because the ML pipeline keys off it. `passUsername`
-	is false only for DoTransfer, which the original code deliberately started without the
+	`tag` is the stable identifier of the destination. `passUsername` is false only for
+	DoTransfer, which the original code deliberately started without the
 	"uname" extra; that quirk is preserved here rather than quietly corrected.
 	*/
 	private static final class Tile {
@@ -125,10 +123,9 @@ public class PostLogin extends Activity {
 	}
 
 	/*
-	Opens one of the dashboard's screens and records the navigation event.
+	Opens one of the dashboard's screens.
 	*/
-	private void openTile(Tile tile) {
-		RaspEvent.ok(RaspEvent.NAVIGATE, "PostLogin", uname, RaspEvent.newOpId(), "to=" + tile.tag);
+	protected void openTile(Tile tile) {
 		Intent i = new Intent(getApplicationContext(), tile.target);
 		if (tile.passUsername) {
 			i.putExtra("uname", uname);
@@ -181,10 +178,9 @@ public class PostLogin extends Activity {
 
 
 	/*
-	Emits LOGOUT, drops the local session and returns to the login screen.
+	Drops the local session and returns to the login screen.
 	*/
 	protected void logout() {
-		RaspEvent.ok(RaspEvent.LOGOUT, "PostLogin", uname, RaspEvent.newOpId(), "button=logout");
 		BankSession.clear(this);
 		Intent i = new Intent(getBaseContext(), LoginActivity.class);
 		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);

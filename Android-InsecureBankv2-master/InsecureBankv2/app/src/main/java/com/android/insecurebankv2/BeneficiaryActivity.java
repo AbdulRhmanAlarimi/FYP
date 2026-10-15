@@ -38,7 +38,7 @@ import java.util.List;
  *                  Every one of them authenticates the caller, and /deletebeneficiary also
  *                  verifies that the row belongs to that caller. The only defect of this
  *                  feature is the client side component exposure documented on
- *              handleExternalAutofill() below - RASP-VULN-003.
+ *              handleExternalAutofill() below - VULN-003.
  *
  *  Intents accepted by this activity
  *  ---------------------------------
@@ -49,7 +49,7 @@ import java.util.List;
  *    autofill_bene_bank     pre-filled beneficiary bank
  * ===========================================================================================
  */
-public class BeneficiaryActivity extends RaspBankActivity {
+public class BeneficiaryActivity extends BankActivity {
 
     public static final String EXTRA_UNAME = "uname";
     public static final String EXTRA_SELECT_MODE = "select_mode";
@@ -146,10 +146,8 @@ public class BeneficiaryActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    track(RaspEvent.BENEFICIARY_VIEW, false, "server rejected the request");
                     return;
                 }
-                int count = 0;
                 try {
                     JSONArray arr = new JSONObject(body).optJSONArray("beneficiaries");
                     adapter.rows.clear();
@@ -161,24 +159,17 @@ public class BeneficiaryActivity extends RaspBankActivity {
                                     b.optString("name"),
                                     b.optString("account_number"),
                                     b.optString("bank_name")});
-                            count++;
                         }
                     }
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("BeneficiaryActivity", uname, opId,
-                            "beneficiary parse: " + e.getMessage());
                 }
                 adapter.notifyDataSetChanged();
-                RaspEvent.ok(RaspEvent.BENEFICIARY_VIEW, "BeneficiaryActivity", uname,
-                        opId, "rows=" + count + " select_mode=" + selectMode);
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("BeneficiaryActivity", uname, opId,
-                        "beneficiary transport " + message);
             }
         });
     }
@@ -187,7 +178,7 @@ public class BeneficiaryActivity extends RaspBankActivity {
 
     /**
      * @param source "form" for a tap on the Add button, "external_intent" when the screen
-     *               was opened by another application (RASP-VULN-003).
+     *               was opened by another application (VULN-003).
      */
     private void addBeneficiary(final String source) {
         final String beneName = name.getText().toString().trim();
@@ -197,8 +188,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
         final String beneType = selected == null ? "Savings" : String.valueOf(selected);
 
         if (beneName.length() == 0 || beneAccount.length() == 0) {
-            RaspEvent.fail(RaspEvent.BENEFICIARY_ADD, "BeneficiaryActivity", uname, opId,
-                    "source=" + source + " reason=missing_fields");
             Toasteroid.show(this, "Name and account number are required",
                     Toasteroid.STYLES.ERROR, Toasteroid.LENGTH_SHORT);
             return;
@@ -215,10 +204,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 boolean ok = body != null && body.indexOf("Beneficiary Added") != -1;
-                RaspEvent.log(RaspEvent.BENEFICIARY_ADD, "BeneficiaryActivity", uname,
-                        ok ? RaspEvent.RESULT_SUCCESS : RaspEvent.RESULT_FAILURE, opId,
-                        "source=" + source + " account=" + beneAccount
-                                + " type=" + beneType);
                 if (ok) {
                     if (!"external_intent".equals(source)) {
                         Toasteroid.show(BeneficiaryActivity.this, "Beneficiary added",
@@ -239,8 +224,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.BENEFICIARY_ADD, "BeneficiaryActivity", uname, opId,
-                        "source=" + source + " transport=" + message);
             }
         });
     }
@@ -255,9 +238,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 boolean ok = body != null && body.indexOf("Beneficiary Deleted") != -1;
-                RaspEvent.log(RaspEvent.BENEFICIARY_DELETE, "BeneficiaryActivity", uname,
-                        ok ? RaspEvent.RESULT_SUCCESS : RaspEvent.RESULT_FAILURE, opId,
-                        "id=" + id);
                 toast(ok ? "Beneficiary deleted" : "Could not delete beneficiary", ok);
                 loadBeneficiaries();
             }
@@ -265,8 +245,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.BENEFICIARY_DELETE, "BeneficiaryActivity", uname,
-                        opId, "id=" + id + " transport=" + message);
             }
         });
     }
@@ -274,8 +252,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
     /* =================================================================== select mode */
 
     private void returnSelection(String beneficiaryName, String beneficiaryAccount) {
-        RaspEvent.ok(RaspEvent.BENEFICIARY_SELECT, "BeneficiaryActivity", uname, opId,
-                "account=" + beneficiaryAccount);
         Intent result = new Intent();
         result.putExtra(EXTRA_SELECTED_ACCOUNT, beneficiaryAccount);
         result.putExtra(EXTRA_SELECTED_NAME, beneficiaryName);
@@ -284,7 +260,7 @@ public class BeneficiaryActivity extends RaspBankActivity {
     }
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-003
+     *  VULNERABILITY ID : VULN-003
      *  FEATURE          : 3 - Beneficiary Management
      *  TYPE             : CWE-926 Improper Export of Android Application Components
      *                     combined with CWE-862 Missing Authorization
@@ -301,10 +277,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
      *                     the strength of the extras it was given - the target `uname` and
      *                     the pre-filled beneficiary fields - with no permission check, no
      *                     caller verification and no user confirmation.
-     *  RUNTIME EVENTS   : BENEFICIARY_ADD with detail "source=external_intent", preceded by
-     *                     BENEFICIARY_VIEW, and the normal SERVER_REQUEST/SERVER_RESPONSE
-     *                     pair. The success/failure flag is identical to an in-app add,
-     *                     which is exactly what makes the anomaly detectable.
      *  REPRODUCE        : while `dinesh` is logged in on the device, from any other app or
      *                     from a shell:
      *                       adb shell am start -n com.android.insecurebankv2/.BeneficiaryActivity \
@@ -330,8 +302,6 @@ public class BeneficiaryActivity extends RaspBankActivity {
         if (preName == null && preAccount == null) {
             return;   // ordinary in-app launch, nothing to do
         }
-        RaspEvent.ok(RaspEvent.NAVIGATE, "BeneficiaryActivity", uname, opId,
-                "source=external_intent autofill=1 select_mode=" + selectMode);
         addBeneficiary("external_intent");
     }
 

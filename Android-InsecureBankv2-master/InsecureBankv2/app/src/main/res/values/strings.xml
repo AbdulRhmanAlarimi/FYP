@@ -30,7 +30,7 @@
     <string name="title_activity_exit">ExitActivity</string>
     <string name="action_kill">Exit Application</string>
 
-    <!-- IntelliRASP FYP build -->
+    <!-- added features -->
     <string name="title_activity_account_details">Account Details</string>
     <string name="title_activity_transaction_history">Transaction History</string>
     <string name="title_activity_beneficiary">Beneficiaries</string>

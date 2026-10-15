@@ -33,11 +33,11 @@ import java.util.List;
  *  The data handled here is FAKE seeded test data (see SEED_CONTACTS in the server), no
  *  real person is represented.
  *
- *  VULNERABILITY : RASP-VULN-005 - the profile is mirrored into insecure local storage and
+ *  VULNERABILITY : VULN-005 - the profile is mirrored into insecure local storage and
  *                  into the system log. See dumpProfileToLocalStorage().
  * ===========================================================================================
  */
-public class ProfileActivity extends RaspBankActivity {
+public class ProfileActivity extends BankActivity {
 
     private static final String PROFILE_PREF_FILE = "insecurebankProfileCache";
     private static final String DUMP_DIR = "InsecureBankProfiles";
@@ -77,7 +77,6 @@ public class ProfileActivity extends RaspBankActivity {
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                trackNav("ChangePassword");
                 IntentBridge.openChangePassword(ProfileActivity.this, uname);
             }
         });
@@ -105,7 +104,6 @@ public class ProfileActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    track(RaspEvent.PROFILE_VIEW, false, "server rejected the request");
                     return;
                 }
                 try {
@@ -117,13 +115,9 @@ public class ProfileActivity extends RaspBankActivity {
                     phone.setText(json.optString("phone"));
                     address.setText(json.optString("address"));
 
-                    RaspEvent.ok(RaspEvent.PROFILE_VIEW, "ProfileActivity", uname, opId,
-                            "fields=6 source=server");
                     dumpProfileToLocalStorage(json);
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("ProfileActivity", uname, opId,
-                            "profile parse: " + e.getMessage());
                     toast("Could not read the profile", false);
                 }
             }
@@ -131,7 +125,6 @@ public class ProfileActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("ProfileActivity", uname, opId, "profile transport " + message);
             }
         });
     }
@@ -157,10 +150,6 @@ public class ProfileActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 boolean ok = body != null && body.indexOf("Profile Updated") != -1;
-                RaspEvent.log(RaspEvent.PROFILE_UPDATE, "ProfileActivity", uname,
-                        ok ? RaspEvent.RESULT_SUCCESS : RaspEvent.RESULT_FAILURE, opId,
-                        "fields_changed=" + changedFields(f, l, m, p, a));
-                toast(ok ? "Profile saved" : "Profile could not be saved", ok);
                 if (ok) {
                     loadProfile();
                 }
@@ -169,14 +158,12 @@ public class ProfileActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.fail(RaspEvent.PROFILE_UPDATE, "ProfileActivity", uname, opId,
-                        "transport=" + message);
             }
         });
     }
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-005
+     *  VULNERABILITY ID : VULN-005
      *  FEATURE          : 5 - Profile Management
      *  TYPE             : CWE-312 Cleartext Storage of Sensitive Information together with
      *                     CWE-276 Incorrect Default Permissions and CWE-532 (log copy)
@@ -191,9 +178,6 @@ public class ProfileActivity extends RaspBankActivity {
      *                           world readable by every application and by any adb session
      *                       (b) a MODE_WORLD_READABLE SharedPreferences file
      *                       (c) the system log, tag "InsecureBankProfile"
-     *  RUNTIME EVENTS   : PROFILE_VIEW / PROFILE_UPDATE (result=success) are emitted just
-     *                     before each dump; the event itself never carries the profile so
-     *                     the leak is not visible in the event stream.
      *  REPRODUCE        : log in -> Profile -> Refresh, then
      *                       adb shell cat /sdcard/InsecureBankProfiles/Profile_dinesh.txt
      *                     or on the device with a file manager / any app holding
@@ -259,8 +243,6 @@ public class ProfileActivity extends RaspBankActivity {
         System.out.println("[Profile] " + body.replace('\n', ' '));
 
         status.setText("Profile loaded");
-        RaspEvent.ok(RaspEvent.NAVIGATE, "ProfileActivity", uname, opId,
-                "profile_cached_to_device=1");
     }
 
     private static void writeFile(File target, String body) throws IOException {
@@ -271,26 +253,6 @@ public class ProfileActivity extends RaspBankActivity {
         } finally {
             out.close();
         }
-    }
-
-    private static int changedFields(String f, String l, String m, String p, String a) {
-        int n = 0;
-        if (f != null && f.length() > 0) {
-            n++;
-        }
-        if (l != null && l.length() > 0) {
-            n++;
-        }
-        if (m != null && m.length() > 0) {
-            n++;
-        }
-        if (p != null && p.length() > 0) {
-            n++;
-        }
-        if (a != null && a.length() > 0) {
-            n++;
-        }
-        return n;
     }
 
     /** tiny indirection so the Intent plumbing stays in one place */

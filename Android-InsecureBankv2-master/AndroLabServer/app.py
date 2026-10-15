@@ -39,7 +39,7 @@ def internal_servererror(error):
 
 
 # ==========================================================================================
-#  Schema management for the six features added for the IntelliRASP FYP research
+#  Schema management for the six added features
 # ==========================================================================================
 #  The shipped mydb.db predates Transaction / Beneficiary / BillPayment and the users
 #  table has no contact columns. Base.metadata.create_all() only creates *missing* tables,
@@ -391,7 +391,7 @@ def dotransfer():
         to_account.balance += int(request.form['amount'])
         from_account.balance -= int(request.form['amount'])
 
-        #  Additive for the IntelliRASP FYP build: a transfer now also lands in the
+        #  Additive: a transfer now also lands in the
         #  transaction history that feature 2 reads. The response above is unchanged.
         transfer_reference = make_reference("TX")
         db_session.add(Transaction(user=user,
@@ -572,7 +572,7 @@ def gettransactions():
     """
     Feature 2 / TRANSACTION HISTORY.
     The client caches this list locally. Search and filtering happen on the device, which
-    is where the intentional local SQL injection lives (RASP-VULN-002, see the Android
+    is where the intentional local SQL injection lives (VULN-002, see the Android
     source - nothing unsafe happens on this side).
     """
     u = authenticate()
@@ -627,7 +627,7 @@ def addbeneficiary():
 def deletebeneficiary():
     """
     Ownership IS checked here on purpose. The intentional weakness of this feature is
-    RASP-VULN-003 (an exported, unprotected Android component) and it is kept on the
+    VULN-003 (an exported, unprotected Android component) and it is kept on the
     client so that a single defect does not multiply across the whole feature.
     """
     u = authenticate()
@@ -657,7 +657,7 @@ def getbillcategories():
 
 
 # ------------------------------------------------------------------------------------------
-#  VULNERABILITY ID : RASP-VULN-004
+#  VULNERABILITY ID : VULN-004
 #  FEATURE          : 4 - Bill Payment  (endpoint /paybill)
 #  TYPE             : CWE-20 Improper Input Validation
 #  COMPONENT        : AndroLabServer/app.py :: paybill()
@@ -689,7 +689,7 @@ def paybill():
     amount_raw = request.form.get('amount') or ""
     payer_account = request.form.get('payer_account') or ""
 
-    # RASP-VULN-004: the ONLY thing that happens here is a best effort numeric coercion
+    # VULN-004: the ONLY thing that happens here is a best effort numeric coercion
     # used for the summary column. There is deliberately no length check, no charset
     # check, no "> 0" check and no "amount <= balance" check.
     try:
@@ -788,7 +788,7 @@ def updateprofile():
 # ==========================================================================================
 #  Feature 6 - Deposit Money
 # ------------------------------------------------------------------------------------------
-#  VULNERABILITY ID : RASP-VULN-006
+#  VULNERABILITY ID : VULN-006
 #  FEATURE          : 6 - Deposit Money  (endpoint /deposit)
 #  TYPE             : CWE-862 Missing Authorization + CWE-20 Improper Input Validation
 #                     (business logic)
@@ -821,7 +821,7 @@ def deposit():
     if not account:
         return makejson({"message": "Account does not exist", "balance": 0})
 
-    # RASP-VULN-006: no `account.user == u.username` check here on purpose, and the
+    # VULN-006: no `account.user == u.username` check here on purpose, and the
     # amount is coerced without any range or sign validation.
     try:
         amount = int(amount_raw)

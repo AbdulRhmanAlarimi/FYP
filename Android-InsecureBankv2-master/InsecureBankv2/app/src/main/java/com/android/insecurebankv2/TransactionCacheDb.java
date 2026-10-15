@@ -111,8 +111,7 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
                 out.add(format(c));
             }
         } catch (SQLiteException e) {
-            RaspEvent.error("TransactionCacheDb", owner, RaspEvent.newOpId(),
-                    "queryRecent failed: " + e.getMessage());
+            // best effort: an unreadable cache simply yields no rows
         } finally {
             close(c);
         }
@@ -134,7 +133,7 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
     }
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-002
+     *  VULNERABILITY ID : VULN-002
      *  FEATURE          : 2 - Transaction History  (keyword search)
      *  TYPE             : CWE-89 Improper Neutralization of Special Elements used in an
      *                     SQL Command ('SQL Injection'), LOCAL (on-device SQLite) variant
@@ -195,8 +194,6 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
             }
         } catch (SQLiteException e) {
             // Keeps the application alive when the payload is not valid SQL.
-            RaspEvent.error("TransactionCacheDb", owner, RaspEvent.newOpId(),
-                    "search rejected: " + e.getMessage());
             out.add("Search could not be completed.");
         } finally {
             close(c);

@@ -29,11 +29,11 @@ import java.util.List;
  *  The whole screen is served by POST /getaccountdetails, which authenticates the caller
  *  and only ever returns rows owned by that user. There is no authorization defect here.
  *
- *  VULNERABILITY  : RASP-VULN-001 - sensitive account data written to the system log
+ *  VULNERABILITY  : VULN-001 - sensitive account data written to the system log
  *                   (see logAccountDetails() below).
  * ===========================================================================================
  */
-public class AccountDetailsActivity extends RaspBankActivity {
+public class AccountDetailsActivity extends BankActivity {
 
     private TextView holder;
     private TextView primaryAccount;
@@ -83,7 +83,6 @@ public class AccountDetailsActivity extends RaspBankActivity {
             public void onResult(String body) {
                 String ok = bodyOrNull(body, "Correct Credentials");
                 if (ok == null) {
-                    track(RaspEvent.ACCOUNT_VIEW, false, "server rejected the request");
                     toast("Could not load account details", false);
                     return;
                 }
@@ -115,20 +114,9 @@ public class AccountDetailsActivity extends RaspBankActivity {
                     adapter.addAll(rows);
                     adapter.notifyDataSetChanged();
 
-                    RaspEvent.ok(RaspEvent.ACCOUNT_VIEW, "AccountDetailsActivity", uname,
-                            opId, "accounts=" + rows.size() + " balance=" + currentBalance);
-                    RaspEvent.ok(RaspEvent.BALANCE_VIEW, "AccountDetailsActivity", uname,
-                            opId, "account=" + number + " balance=" + currentBalance);
-
                     logAccountDetails(holderName, number, type, currentBalance, rows);
-
-                    if (fromResume) {
-                        track(RaspEvent.ACCOUNT_REFRESH, true, "screen opened");
-                    }
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("AccountDetailsActivity", uname, opId,
-                            "response parse: " + e.getMessage());
                     toast("Could not read account details", false);
                 }
             }
@@ -136,14 +124,13 @@ public class AccountDetailsActivity extends RaspBankActivity {
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                track(RaspEvent.ACCOUNT_VIEW, false, "transport " + message);
                 toast("Server not reachable", false);
             }
         });
     }
 
     /* ==================================================================================
-     *  VULNERABILITY ID : RASP-VULN-001
+     *  VULNERABILITY ID : VULN-001
      *  FEATURE          : 1 - Account Details
      *  TYPE             : CWE-532 Insertion of Sensitive Information into Log File
      *                     (a.k.a. CWE-215 Insertion of Sensitive Information Into Debug
@@ -157,8 +144,6 @@ public class AccountDetailsActivity extends RaspBankActivity {
      *                     type and the live balance of every account are written to logcat
      *                     with Log.i(), which lands in the system buffer and is also
      *                     mirrored into /data/system/dropbox and crash reports.
-     *  RUNTIME EVENTS   : ACCOUNT_VIEW (success) and BALANCE_VIEW (success) are emitted
-     *                     first; the log lines follow, tagged "InsecureBankAccount".
      *  REPRODUCE        : log in -> open "Account Details" ->
      *                     adb logcat -s InsecureBankAccount:I
      *                     every field of the account is printed there.

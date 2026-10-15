@@ -143,21 +143,12 @@ public class DoLogin extends Activity {
 			if (result != null) {
 				if (result.indexOf("Correct Credentials") != -1) {
 					Log.d("Successful Login:", ", account=" + username + ":" + password);
-					//	IntelliRASP research - authentication outcome. No password in the event.
-					RaspEvent.newSession();
-					RaspEvent.registerSecret(password);
-					RaspEvent.ok(RaspEvent.LOGIN_SUCCESS, "DoLogin", username,
-							RaspEvent.newOpId(),
-							"endpoint=/login backdoor=" + username.equals("devadmin"));
 					saveCreds(username, password);
 					trackUserLogins();
 					Intent pL = new Intent(getApplicationContext(), PostLogin.class);
 					pL.putExtra("uname", username);
 					startActivity(pL);
 				} else {
-					//	IntelliRASP research - failed authentication
-					RaspEvent.fail(RaspEvent.LOGIN_FAILURE, "DoLogin", username,
-							RaspEvent.newOpId(), "server=" + result);
 					Intent xi = new Intent(getApplicationContext(), WrongLogin.class);
 					startActivity(xi);
 				}

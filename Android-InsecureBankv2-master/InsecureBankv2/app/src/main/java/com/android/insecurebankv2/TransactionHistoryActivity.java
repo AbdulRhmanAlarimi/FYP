@@ -27,7 +27,7 @@ import java.util.List;
  *  "Sync" pulls POST /gettransactions and refreshes the local cache
  *  (TransactionCacheDb / insecurebank_cache.db). "Show All" is a safe, parameterised
  *  listing. "Search" runs the keyword filter, which is the single intentionally
- *  vulnerable statement of the whole application - RASP-VULN-002, implemented in
+ *  vulnerable statement of the whole application - VULN-002, implemented in
  *  TransactionCacheDb.search().
  *
  *  The screen can also be opened directly with the keyword pre-filled:
@@ -39,7 +39,7 @@ import java.util.List;
  *      character - send each ' with `input keyevent 75` instead.
  * ===========================================================================================
  */
-public class TransactionHistoryActivity extends RaspBankActivity {
+public class TransactionHistoryActivity extends BankActivity {
 
     private static final String[] TYPE_FILTERS =
             {"ALL", "TRANSFER", "DEPOSIT", "BILL_PAYMENT"};
@@ -102,18 +102,8 @@ public class TransactionHistoryActivity extends RaspBankActivity {
             return;
         }
 
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // TODO Auto-generated method stub
-                Object item = parent.getItemAtPosition(position);
-                RaspEvent.ok(RaspEvent.TRANSACTION_HISTORY_VIEW, "TransactionHistoryActivity",
-                        uname, opId, "action=open_row detail=" + item);
-            }
-        });
-
         // An externally supplied keyword is honoured. This is the entry point used by the
-        // RASP-VULN-002 reproduction script; a normal user never sees it.
+        // VULN-002 reproduction script; a normal user never sees it.
         String preset = getIntent() == null ? null : getIntent().getStringExtra("preset_keyword");
         if (preset != null) {
             search.setText(preset);
@@ -140,11 +130,8 @@ public class TransactionHistoryActivity extends RaspBankActivity {
             @Override
             public void onResult(String body) {
                 if (bodyOrNull(body, "Correct Credentials") == null) {
-                    RaspEvent.error("TransactionHistoryActivity", uname, opId,
-                            "sync rejected by server");
                     return;
                 }
-                int cached = 0;
                 try {
                     JSONArray arr = new JSONObject(body).optJSONArray("transactions");
                     List<Object[]> rows = new ArrayList<Object[]>();
@@ -162,22 +149,15 @@ public class TransactionHistoryActivity extends RaspBankActivity {
                         }
                     }
                     db.replaceFor(uname, rows);
-                    cached = rows.size();
                 } catch (JSONException e) {
                     // TODO Auto-generated catch block
-                    RaspEvent.error("TransactionHistoryActivity", uname, opId,
-                            "sync parse: " + e.getMessage());
                 }
-                RaspEvent.ok(RaspEvent.TRANSACTION_HISTORY_VIEW, "TransactionHistoryActivity",
-                        uname, opId, "action=sync cached=" + cached);
                 showAll();
             }
 
             @Override
             public void onError(String message) {
                 // TODO Auto-generated method stub
-                RaspEvent.error("TransactionHistoryActivity", uname, opId,
-                        "sync transport " + message);
             }
         });
     }
@@ -187,28 +167,18 @@ public class TransactionHistoryActivity extends RaspBankActivity {
     private void showAll() {
         List<String> rows = db.queryRecent(uname, 200);
         render(rows);
-        RaspEvent.ok(RaspEvent.TRANSACTION_HISTORY_VIEW, "TransactionHistoryActivity",
-                uname, opId, "action=show_all rows=" + rows.size());
     }
 
     /**
-     * Keyword filter. Reaches TransactionCacheDb.search() which is RASP-VULN-002.
+     * Keyword filter. Reaches TransactionCacheDb.search() which is VULN-002.
      */
     private void searchTransactions() {
         String keyword = search.getText().toString();
         Object selected = typeSpinner.getSelectedItem();
         String type = selected == null ? "ALL" : String.valueOf(selected);
 
-        RaspEvent.ok(RaspEvent.TRANSACTION_SEARCH, "TransactionHistoryActivity", uname,
-                opId, "keyword_len=" + keyword.length() + " type=" + type
-                + " keyword=[" + keyword + "]");
-
         List<String> rows = db.search(uname, keyword, type);
         render(rows);
-
-        RaspEvent.log(RaspEvent.TRANSACTION_SEARCH_RESULT, "TransactionHistoryActivity",
-                uname, RaspEvent.RESULT_SUCCESS, opId,
-                "rows=" + rows.size() + " type=" + type);
     }
 
     private void render(List<String> rows) {

@@ -8,9 +8,7 @@
     a destructive action does not belong in the middle of a tile grid.
 
     The ids that PostLogin binds are unchanged - rootStatus and button_Logout are still real
-    views, and the nine cells still resolve to the same destinations with the same
-    RaspEvent.NAVIGATE "to=" values, so the recorded event traces are unaffected by the
-    layout change.
+    views, and the nine cells still resolve to the same destinations.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"

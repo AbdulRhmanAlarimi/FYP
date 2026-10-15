@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -27,24 +26,18 @@ import java.util.List;
 /**
  * Common base for the six new banking screens.
  *
- * It does exactly three things and deliberately nothing else:
+ * It does exactly two things and deliberately nothing else:
  *   1. resolves the logged in user from the credentials the original application
  *      already stores (BankSession) so every screen speaks the same protocol;
  *   2. performs a background url-encoded POST through the same deprecated Apache
  *      HttpClient stack that DoLogin/DoTransfer/ChangePassword use, and delivers the
- *      result back on the UI thread;
- *   3. emits a consistent IntelliRASP event for every user action.
+ *      result back on the UI thread.
  *
- * The original activities are NOT refactored onto this class - they are untouched, they
- * only call the static RaspEvent helpers directly.
+ * The original activities are NOT refactored onto this class - they are untouched.
  */
-public abstract class RaspBankActivity extends Activity {
-
-    /** name written into the "component" field of every event produced by this screen */
-    private final String component = this.getClass().getSimpleName();
+public abstract class BankActivity extends Activity {
 
     protected String uname;
-    protected String opId = RaspEvent.newOpId();
 
     /** result of a backend round trip, always delivered on the UI thread */
     public interface ApiCallback {
@@ -87,8 +80,6 @@ public abstract class RaspBankActivity extends Activity {
      */
     protected boolean requireSession() {
         if (uname == null || uname.length() == 0) {
-            RaspEvent.fail(RaspEvent.SESSION_EXPIRED, component, "anonymous", opId,
-                    "no local session");
             Toasteroid.show(this, "Please log in first", Toasteroid.STYLES.WARNING,
                     Toasteroid.LENGTH_SHORT);
             Intent i = new Intent(getApplicationContext(), LoginActivity.class);
@@ -100,28 +91,12 @@ public abstract class RaspBankActivity extends Activity {
         if (!BankSession.isServerConfigured(this)) {
             Toasteroid.show(this, "Server path/port not set!!", Toasteroid.STYLES.ERROR,
                     Toasteroid.LENGTH_SHORT);
-            RaspEvent.error(component, uname, opId, "server address not configured");
             Intent i = new Intent(getApplicationContext(), FilePrefActivity.class);
             startActivity(i);
             finish();
             return false;
         }
         return true;
-    }
-
-    /* =========================================================================== events */
-
-    protected void track(String event, boolean success, String detail) {
-        RaspEvent.log(event, component, uname, success ? RaspEvent.RESULT_SUCCESS
-                : RaspEvent.RESULT_FAILURE, opId, detail);
-    }
-
-    protected void track(String event, boolean success) {
-        track(event, success, null);
-    }
-
-    protected void trackNav(String target) {
-        RaspEvent.ok(RaspEvent.NAVIGATE, component, uname, opId, "to=" + target);
     }
 
     /* ============================================================================= http */
@@ -151,7 +126,6 @@ public abstract class RaspBankActivity extends Activity {
     protected void apiPost(final String endpoint, final List<NameValuePair> params,
                            final ApiCallback callback) {
         final String url = BankSession.baseUrl(this) + endpoint;
-        RaspEvent.ok(RaspEvent.SERVER_REQUEST, component, uname, opId, endpoint);
 
         new AsyncTask<String, String, String>() {
             String failure = null;
@@ -170,12 +144,9 @@ public abstract class RaspBankActivity extends Activity {
                 try {
                     in = httpclient.execute(httppost).getEntity().getContent();
                     String body = convertStreamToString(in);
-                    RaspEvent.ok(RaspEvent.SERVER_RESPONSE, component, uname, opId,
-                            endpoint + " bytes=" + body.length());
                     return body == null ? "" : body.replace("\n", "");
                 } catch (IOException e) {
                     failure = "io";
-                    RaspEvent.error(component, uname, opId, endpoint + " transport failure");
                     return null;
                 } catch (Exception e) {
                     failure = "parse";
@@ -265,10 +236,9 @@ public abstract class RaspBankActivity extends Activity {
     }
 
     /**
-     * Emits LOGOUT, drops the local session and returns to the login screen.
+     * Drops the local session and returns to the login screen.
      */
     protected void performLogout() {
-        RaspEvent.ok(RaspEvent.LOGOUT, component, uname, opId, "menu=restart");
         BankSession.clear(this);
         Intent i = new Intent(getBaseContext(), LoginActivity.class);
         i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -277,15 +247,13 @@ public abstract class RaspBankActivity extends Activity {
     }
 
     /**
-     * Opens another screen of this application, tagging the navigation event.
+     * Opens another screen of this application.
      */
     protected void open(Class<?> target, String tag) {
-        trackNav(tag);
         Intent i = new Intent(getApplicationContext(), target);
         if (uname != null) {
             i.putExtra("uname", uname);
         }
-        i.putExtra("op_id", opId);
         startActivity(i);
     }
 }

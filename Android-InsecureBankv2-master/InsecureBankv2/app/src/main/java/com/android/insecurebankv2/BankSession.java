@@ -69,10 +69,7 @@ public final class BankSession {
             return null;
         }
         try {
-            String plain = new CryptoClass().aesDeccryptedString(encrypted);
-            // never let the plaintext leak into the event stream
-            RaspEvent.registerSecret(plain);
-            return plain;
+            return new CryptoClass().aesDeccryptedString(encrypted);
         } catch (Exception e) {
             return null;
         }
@@ -86,7 +83,6 @@ public final class BankSession {
     public static void clear(Context context) {
         SharedPreferences s = context.getSharedPreferences(MYPREFS, Context.MODE_PRIVATE);
         s.edit().remove(KEY_USERNAME).remove(KEY_PASSWORD).commit();
-        RaspEvent.registerSecret(null);
     }
 
     public static String serverIp(Context context) {
