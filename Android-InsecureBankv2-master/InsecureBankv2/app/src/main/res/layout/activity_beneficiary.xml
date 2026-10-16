@@ -1,0 +1,95 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add a beneficiary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/editText_beneName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Beneficiary name"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <EditText
+            android:id="@+id/editText_beneAccount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:hint="Account number"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <EditText
+            android:id="@+id/editText_beneBank"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:hint="Bank name (optional)"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <Spinner
+            android:id="@+id/spinner_beneType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp" />
+
+        <Button
+            android:id="@+id/button_addBeneficiary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Add Beneficiary"
+            android:padding="15dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/wallet_bright_foreground_holo_dark"
+            android:background="@drawable/roundbutton" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Registered beneficiaries"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:paddingTop="20dp" />
+
+        <ListView
+            android:id="@+id/listView_beneficiaries"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="5dp"></ListView>
+
+        <Button
+            android:id="@+id/button_refreshBeneficiaries"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Refresh"
+            android:padding="15dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/wallet_bright_foreground_holo_dark"
+            android:background="@drawable/roundbutton" />
+
+    </LinearLayout>
+
+</ScrollView>

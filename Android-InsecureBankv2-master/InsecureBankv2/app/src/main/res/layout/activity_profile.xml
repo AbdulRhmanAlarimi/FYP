@@ -1,0 +1,150 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Profile (all values below are test data)"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Username"
+            android:textSize="14sp"
+            android:paddingTop="15dp" />
+
+        <TextView
+            android:id="@+id/textView_profileUser"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Name"
+            android:textSize="14sp"
+            android:paddingTop="15dp" />
+
+        <EditText
+            android:id="@+id/editText_firstName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <EditText
+            android:id="@+id/editText_lastName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:hint="Last name"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Email"
+            android:textSize="14sp"
+            android:paddingTop="15dp" />
+
+        <EditText
+            android:id="@+id/editText_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Phone number"
+            android:textSize="14sp"
+            android:paddingTop="15dp" />
+
+        <EditText
+            android:id="@+id/editText_phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:singleLine="true"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Address"
+            android:textSize="14sp"
+            android:paddingTop="15dp" />
+
+        <EditText
+            android:id="@+id/editText_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:background="@android:drawable/editbox_background"
+            android:padding="15dp" />
+
+        <Button
+            android:id="@+id/button_saveProfile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="15dp"
+            android:text="Save Profile"
+            android:padding="15dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/wallet_bright_foreground_holo_dark"
+            android:background="@drawable/roundbutton" />
+
+        <Button
+            android:id="@+id/button_changePassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Change Password"
+            android:padding="15dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/wallet_bright_foreground_holo_dark"
+            android:background="@drawable/roundbutton" />
+
+        <Button
+            android:id="@+id/button_refreshProfile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Refresh"
+            android:padding="15dp"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/wallet_bright_foreground_holo_dark"
+            android:background="@drawable/roundbutton" />
+
+        <TextView
+            android:id="@+id/textView_profileStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="13sp"
+            android:paddingTop="12dp" />
+
+    </LinearLayout>
+
+</ScrollView>
