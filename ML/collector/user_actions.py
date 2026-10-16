@@ -1,6 +1,6 @@
 import time
 import random
-from config import find, tap, type_in, start_driver, by_text
+from config import find, tap, type_in, start_driver, by_text, PKG
 import screens as S
 from appium.webdriver.common.appiumby import AppiumBy
 
@@ -33,13 +33,32 @@ def change_password_from_tile(driver, new_passw):
     open_tile(driver, S.TILE["change_password"])
     type_in(driver, S.CHANGE_PW["new_pw"], new_passw)
     tap(driver, S.CHANGE_PW["submit"])
-    driver.back()
+
+#the app expect us to restart and login after some actions
+def restart_and_login(driver, user, pw):
+    driver.terminate_app(PKG)
+    driver.activate_app(PKG)
+    login(driver, user, pw)
 
 def view_account_detalis(driver):
     open_tile(driver, S.TILE["account_details"])
     find(driver, S.ACCOUNT["list"])
     tap(driver, S.ACCOUNT["refersh_btn"])
     driver.back()
+
+# ------- Sign up -----------
+def signup(driver, user, pw, first, last, email="", phone="", address=""):
+    tap(driver, S.LOGIN["create_user"])
+    type_in(driver, S.SIGNUP["username"], user)
+    type_in(driver, S.SIGNUP["password"], pw)
+    type_in(driver, S.SIGNUP["confirm"], pw)
+    type_in(driver, S.SIGNUP["first_name"], first)
+    type_in(driver, S.SIGNUP["last_name"], last)
+    type_in(driver, S.SIGNUP["email"], email)
+    type_in(driver, S.SIGNUP["phone"], phone)
+    type_in(driver, S.SIGNUP["address"], address)
+    tap(driver, S.SIGNUP["create_btn"])
+    find(driver, S.LOGIN["password"]) 
 
 # ----- Add & Transfer to beneficiary -------------
 def add_beneficiary(driver, name, account, bank):

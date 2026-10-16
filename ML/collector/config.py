@@ -18,6 +18,7 @@ def start_driver():
     options.platform_name = "Android"
     options.app_package = PKG
     options.app_activity = LOGIN_ACT
+    options.auto_grant_permissions = True # grant the app's declared premissions
 
     driver = webdriver.Remote(
         APPIUM_URL,

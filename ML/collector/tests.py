@@ -48,12 +48,22 @@ def test_pay_bill(driver, user, passw):
     pay_bill(driver, bill_category, from_account, bill_num, amount)
     view_account_detalis(driver)
 
+def test_singup_loginn(driver):
+    user_name = "Ali"
+    first_name, last_name = "Ali", "Salim"
+    password = "123123"
+
+    signup(driver, user_name, password, first_name, last_name)
+    login(driver, user_name, password)
+    view_account_detalis(driver)
+
 def main():
     driver = start_driver()
     set_ip_and_port(driver)
 
     try:
-        test_add_benficiary_and_transfer(driver, TEST_USER, TEST_PASS)
+        # test_add_benficiary_and_transfer(driver, TEST_USER, TEST_PASS)
+        test_singup_loginn(driver)
     finally:
         driver.quit()
     

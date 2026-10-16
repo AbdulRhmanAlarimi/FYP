@@ -14,6 +14,17 @@ LOGIN = {
     "login_btn":   rid("login_button"),
     "create_user": rid("button_CreateUser"),   
 }
+SIGNUP = {
+    "username":   rid("editText_signupUsername"),
+    "password":   rid("editText_signupPassword"),
+    "confirm":    rid("editText_signupConfirm"),
+    "first_name": rid("editText_signupFirstName"),
+    "last_name":  rid("editText_signupLastName"),
+    "email":      rid("editText_signupEmail"),
+    "phone":      rid("editText_signupPhone"),
+    "address":    rid("editText_signupAddress"),
+    "create_btn": rid("button_createAccount")
+}
 PREFS = {  
     "server_ip": rid("edittext_serverip"),
     "server_port": rid("edittext_serverport"),
