@@ -1,4 +1,5 @@
 import subprocess, os
+from journey import start_journey
 #from journey import benign_journey
 
 # directory of the Android-InsecureBankv2 repo
@@ -19,7 +20,7 @@ def run_one_flow(seed):
     if RESET_BACKEND:
         reset_backend()
     clean_virtual_device()
-    #benign_journey(seed)
+    start_journey(seed)
 
 def run_batch(num_flows):
     for i in range(num_flows):

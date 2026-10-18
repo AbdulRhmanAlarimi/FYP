@@ -42,6 +42,9 @@ def type_in(driver, locator, text, timeout=15):
     element = find(driver, locator, timeout)
     element.clear()
     element.send_keys(str(text))
+    # check that the emualtor's keyboard didn't autocompelete anything
+    if element.text != str(text):
+        driver.execute_script("mobile: replaceElementValue", {"elementId": element.id, "text": str(text)})
 
 def by_text(text):
     return (AppiumBy.XPATH, f'//*[@text="{text}"]')

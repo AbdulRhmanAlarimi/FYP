@@ -1,6 +1,5 @@
-import time
-import random
-from config import find, tap, type_in, start_driver, by_text, PKG
+import math, time, random
+from config import find, tap, type_in, by_text, PKG
 import screens as S
 from appium.webdriver.common.appiumby import AppiumBy
 
@@ -12,10 +11,15 @@ def select_from_dropdown(driver, dropwon_id, tile_name):
     tap(driver, dropwon_id)
     tap(driver, by_text(tile_name))
 
-def human_pause(min_seconds=0.5, max_seconds=2.0):
-    #generate random number (sleep duration)
-    delay = random.uniform(min_seconds, max_seconds)
-    time.sleep(delay)
+_rng = random.Random()
+
+def seed_time(seed):
+    """Seed the timing for one session"""
+    _rng.seed(seed)
+
+def think(seconds=2.0, sigma=0.6):
+    """Pause ~seconds (median), with the odd longer gap"""
+    time.sleep(min(_rng.lognormvariate(math.log(seconds), sigma), 20))
 
 # ------- Login and manage account actions -----------
 def login(driver, user, pw):

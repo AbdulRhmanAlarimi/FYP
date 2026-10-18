@@ -10,7 +10,7 @@ def test_update_profile(driver, user, passw):
     new_passw = passw
 
     login(driver, user, passw)
-    human_pause()
+    think()
     update_profile(driver, new_email)
     view_account_detalis(driver)
     change_password_from_tile(driver, new_passw)
@@ -22,10 +22,10 @@ def test_add_benficiary_and_transfer(driver, user, passw):
     from_account = "888888888"
 
     login(driver, user, passw)
-    human_pause()
+    think()
     add_beneficiary(driver, beneficiary_name, account_number, bank_name)
     transfer_to_beneficiary(driver, 4, from_account , beneficiary_name)
-    human_pause()
+    think()
     sync_and_search_transaction_history(driver, account_number)
 
 def test_deposit(driver, user, passw):
@@ -35,7 +35,7 @@ def test_deposit(driver, user, passw):
     login(driver, user, passw)
     view_account_detalis(driver)
     deposit(driver, account_number, amount)
-    human_pause()
+    think()
     view_account_detalis(driver)
 
 def test_pay_bill(driver, user, passw):
