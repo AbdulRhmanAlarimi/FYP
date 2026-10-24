@@ -50,6 +50,12 @@ public class LoginActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_log_main);
+
+		//hook M-15/14/11
+		// Delet it because we do RASP App . java
+		//Rasp.startEnvChecks();
+
+
 		String mess = getResources().getString(R.string.is_admin);
 		if (mess.equals("no")) {
 			View button_CreateUser = findViewById(R.id.button_CreateUser);

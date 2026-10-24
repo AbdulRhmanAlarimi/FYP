@@ -40,6 +40,9 @@ import android.widget.Toast;
 
 import com.marcohc.toasteroid.Toasteroid;
 
+import org.json.JSONObject;
+import org.json.JSONException;
+
 /*
 The page that accepts new password and passes it on to the change password 
 module. This new password can then be used by the user to log in to the account.
@@ -75,8 +78,26 @@ public class DoLogin extends Activity {
         if(serverip!=null && serverport!=null){
 
 		Intent data = getIntent();
+
+
+		// Here the app read a user name and pass:
 		username = data.getStringExtra("passed_username");
 		password = data.getStringExtra("passed_password");
+		//Hook line for login: "ME-06",  "EXTERNAL_INPUT"
+		try {
+			JSONObject d = new JSONObject();
+			d.put("input_source", "UI");
+			d.put("input_length", username.length());
+			d.put("input_type", "TEXT");
+			d.put("destination_function", "postData");
+			d.put("destination_component", "DoLogin");
+			// I need to check it then for vuln 
+			d.put("validation_result", username.matches(".*['\";<>].*") ? "SUSPICIOUS" : "PASSED");
+			Rasp.send("ME-06", "EXTERNAL_INPUT", "DoLogin", d);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
 		new RequestTask().execute("username");
 
         }
@@ -137,20 +158,38 @@ public class DoLogin extends Activity {
 				responseBody = httpclient.execute(httppost);
 			}
 
+			// "ME-10", "NETWORK_CONNECTION"
+			String path = username.equals("devadmin") ? "/devlogin" : "/login";
+			Rasp.network(serverip, serverport, protocol.replace("://", ""), "POST", path,
+					responseBody.getStatusLine().getStatusCode(),
+					responseBody.getEntity().getContentLength(), "DoLogin");
+
 			InputStream in = responseBody.getEntity().getContent();
 			result = convertStreamToString( in );
 			result = result.replace("\n", "");
 			if (result != null) {
 				if (result.indexOf("Correct Credentials") != -1) {
+
+					//Add for ME-09, ME-12, ME-13, ME-04
+					RaspApp.loggedIn = true;
+
+					// is mistake vuln = AS=03
 					Log.d("Successful Login:", ", account=" + username + ":" + password);
+
+					//Hook "ME-05", "APPLICATION_LOG_EVENT"
+					Rasp.log("DEBUG", "Successful Login:", ", account=" + username + ":" + password, "DoLogin");
+					
 					saveCreds(username, password);
 					trackUserLogins();
 					Intent pL = new Intent(getApplicationContext(), PostLogin.class);
+
+					pL.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
 					pL.putExtra("uname", username);
 					startActivity(pL);
 				} else {
 					Intent xi = new Intent(getApplicationContext(), WrongLogin.class);
-					startActivity(xi);
+					xi.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 				}
 			}
 		}
@@ -193,7 +232,11 @@ public class DoLogin extends Activity {
 			superSecurePassword = crypt.aesEncryptedString(rememberme_password);
 			editor.putString("EncryptedUsername", base64Username);
 			editor.putString("superSecurePassword", superSecurePassword);
-			editor.commit();
+			
+			//hook 2 ME-01 => commit return boolean 
+			boolean ok = editor.commit();
+			Rasp.prefs(MYPREFS, "EncryptedUsername", "WRITE", ok, "DoLogin");
+			Rasp.prefs(MYPREFS, "superSecurePassword", "WRITE", ok, "DoLogin");
 		}
 
 		private String convertStreamToString(InputStream in ) throws IOException {
