@@ -14,6 +14,9 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 
+import android.os.Binder;
+import android.os.Build;
+
 /*
 The class that keeps a track of all the logged in users' on the device
 @author Dinesh Shetty
@@ -49,6 +52,11 @@ public class TrackUserContentProvider extends ContentProvider {
 		switch (uriMatcher.match(uri)) {
 			case uriCode:
 				count = db.delete(TABLE_NAME, selection, selectionArgs);
+
+				reportCaller("DELETE");
+				Rasp.sql(DATABASE_NAME, "DELETE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
+
+
 				break;
 			default:
 				throw new IllegalArgumentException("Unknown URI " + uri);
@@ -72,6 +80,10 @@ public class TrackUserContentProvider extends ContentProvider {
 	public Uri insert(Uri uri, ContentValues values) {
 		// TODO Auto-generated method stub
 		long rowID = db.insert(TABLE_NAME, "", values);
+
+		reportCaller("INSERT");
+		Rasp.sql(DATABASE_NAME, "INSERT", TABLE_NAME, null, null, rowID > 0, "TrackUserContentProvider");
+
 		if (rowID > 0) {
 			Uri _uri = ContentUris.withAppendedId(CONTENT_URI, rowID);
 			getContext().getContentResolver().notifyChange(_uri, null);
@@ -109,8 +121,19 @@ public class TrackUserContentProvider extends ContentProvider {
 		if (sortOrder == null || sortOrder == "") {
 			sortOrder = name;
 		}
-		Cursor c = qb.query(db, projection, selection, selectionArgs, null,
-		null, sortOrder);
+
+		// Replace
+		reportCaller("QUERY");
+		Cursor c = null;
+		boolean ok = false;
+		try {
+			c = qb.query(db, projection, selection, selectionArgs, null, null, sortOrder);
+			ok = true;
+		} finally {   // runs even if the query crashes, so injected SQL is still reported
+			Rasp.sql(DATABASE_NAME, "SELECT", TABLE_NAME, selection, selectionArgs, ok, "TrackUserContentProvider");
+		}
+
+
 		c.setNotificationUri(getContext().getContentResolver(), uri);
 		return c;
 
@@ -124,6 +147,11 @@ public class TrackUserContentProvider extends ContentProvider {
 		switch (uriMatcher.match(uri)) {
 			case uriCode:
 				count = db.update(TABLE_NAME, values, selection, selectionArgs);
+
+				reportCaller("UPDATE");
+				Rasp.sql(DATABASE_NAME, "UPDATE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
+
+
 				break;
 			default:
 				throw new IllegalArgumentException("Unknown URI " + uri);
@@ -147,5 +175,11 @@ public class TrackUserContentProvider extends ContentProvider {
 			db.execSQL("DROP TABLE IF EXISTS " + TABLE_NAME);
 			onCreate(db);
 		}
+	}
+
+	//Helper Method for hook 
+	private void reportCaller(String op) {
+		String pkg = Build.VERSION.SDK_INT >= 19 ? getCallingPackage() : null;
+		Rasp.provider(getClass().getName(), op, Binder.getCallingUid(), pkg);
 	}
 }

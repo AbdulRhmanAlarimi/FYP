@@ -29,11 +29,22 @@ public class ViewStatement extends Activity {
 		//String statementLocation=Environment.getExternalStorageDirectory()+ "/Statements_" + uname + ".html";
 		String FILENAME="Statements_" + uname + ".html";
 		File fileToCheck = new File(Environment.getExternalStorageDirectory(), FILENAME);
+
+		//hook me - 03
+		Rasp.file(fileToCheck.getAbsolutePath(), "READ", fileToCheck.exists(), "ViewStatement");
+
+
 		System.out.println(fileToCheck.toString());
 		if (fileToCheck.exists()) {
 			//Toast.makeText(this, "Statement Exists!!",Toast.LENGTH_LONG).show();
 
 			WebView mWebView = (WebView) findViewById(R.id.webView1);
+
+			
+			//hook me - 03
+			Rasp.webview("file://" + Environment.getExternalStorageDirectory() + "/Statements_" + uname + ".html", "LOAD", true, "ViewStatement");
+
+
 			//   Location where the statements are stored locally on the device sdcard
 			mWebView.loadUrl("file://" + Environment.getExternalStorageDirectory() + "/Statements_" + uname + ".html");
 			mWebView.getSettings().setJavaScriptEnabled(true);

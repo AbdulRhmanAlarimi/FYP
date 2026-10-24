@@ -239,6 +239,9 @@ public class DoTransfer extends Activity {
 									out2.write(status);
                                     out2.write("<hr>");
 									out2.close();
+
+									//hook me-3
+									Rasp.file(MYFILE, "WRITE", true, "DoTransfer");
 								} catch (IOException e) {
 									e.toString();
 								}
@@ -258,7 +261,12 @@ public class DoTransfer extends Activity {
 								out2.write(status);
                                 out2.write("<hr>");
 								out2.close();
+
+								//hook me-3
+								Rasp.file(MYFILE, "WRITE", true, "DoTransfer");
+
 							} catch (IOException e) {
+								Rasp.file(MYFILE, "WRITE", false, "DoTransfer");
 								e.toString();
 							}
 						}
