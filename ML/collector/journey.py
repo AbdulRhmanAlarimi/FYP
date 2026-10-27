@@ -1,3 +1,4 @@
+import random
 from user_actions import *
 from config import start_driver
 from faker import Faker
