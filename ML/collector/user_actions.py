@@ -23,6 +23,32 @@ def login(driver, user, pw):
     type_in(driver, S.LOGIN["password"], pw)
     tap(driver, S.LOGIN["login_btn"])
 
+def make_typo(rng, text):
+    """return a relasitc typo of the given text"""
+    i = rng.randrange(len(text))
+    typo_class = rng.choice(["drop", "double", "swap", "case"])
+
+    # drop one char first
+    if typo_class == "drop" and len(text) > 1:
+        typo = text[:i] + text[i + 1:]
+    elif typo_class == "double": # double the char at index i
+        typo = text[:i] + text[i] + text[i:]
+    elif typo_class == "swap" and len(text) > 1: # swap two consectuive chars
+        i = min(i, len(text) - 2)
+        typo = text[:i] + text[i + 1] + text[i] + text[i + 2: ]
+    else: # swap case of the i-th letter
+        typo = text[:i] + text[i].swapcase() + text[i + 1:]
+    return typo if typo != text else text + text[-1]
+    
+def login_with_typos(driver, user, pw, rng = None , n_typos = 0):
+    """login but with first n_typos first"""
+    for _ in range(n_typos):
+        login(driver, user, make_typo(rng, pw))
+        think(3)  # think time (tries to remeber the password)
+        find(driver, S.LOGIN["password"])
+
+    login(driver, user, pw)
+
 def update_profile(driver, email):
     open_tile(driver, S.TILE["profile"])
     type_in(driver, S.PROFILE["email"], email)
@@ -36,10 +62,10 @@ def change_password_from_tile(driver, new_passw):
     tap(driver, S.CHANGE_PW["submit"])
 
 #the app expect us to restart and login after some actions
-def restart_and_login(driver, user, pw):
+def restart_and_login(driver, user, pw, rng=None, n_typos=0):
     driver.terminate_app(PKG)
     driver.activate_app(PKG)
-    login(driver, user, pw)
+    login_with_typos(driver, user, pw, rng, n_typos)
 
 def view_account_detalis(driver):
     open_tile(driver, S.TILE["account_details"])
@@ -116,3 +142,23 @@ def set_ip_and_port(driver, ip="10.0.2.2", port="8888"):
     type_in(driver, S.PREFS["server_ip"], ip)
     type_in(driver, S.PREFS["server_port"], port)
     tap(driver, S.PREFS["submit"])
+
+# ------ user action with mistakes ------------
+def hide_keyboard(driver):
+    try:
+        if driver.is_keyboard_shown():
+            driver.hide_keyboard()
+    except Exception:
+        pass
+
+ABANDON_TILES = {"DEPOSIT": "deposit", "BILL": "bill_payment",
+                 "BENEFICIARY": "beneficiaries", "TRANSFER": "transfer",
+                 "PROFILE": "profile"}
+
+def abandon_form(driver, state, field=None, text=""):
+    """Open a tile, maybe right some text then close it before submitting anything"""
+    open_tile(driver, S.TILE[ABANDON_TILES[state]])
+    if field:
+        type_in(driver, field, text)
+    hide_keyboard(driver)       
+    go_back(driver)

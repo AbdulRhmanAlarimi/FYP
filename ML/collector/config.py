@@ -20,7 +20,7 @@ def start_driver():
     options.app_package = PKG
     options.app_activity = LOGIN_ACT
     options.auto_grant_permissions = True # grant the app's declared premissions
-
+    options.no_reset = True          # keep app data (server IP, db)
     driver = webdriver.Remote(
         APPIUM_URL,
         options=options

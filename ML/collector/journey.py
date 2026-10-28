@@ -2,6 +2,8 @@ import random
 from user_actions import *
 from config import start_driver
 from faker import Faker
+from human_pauses import seed_time
+import screens as S
 
 # --------------------- Inputs ------------------------
 DINESH_ACCOUNTS = ["123456789", "888888888", "666666666"]
@@ -33,6 +35,36 @@ def amount(rng):
     if r < 0.75: return rng.randrange(5, 100)
     if r < 0.97: return rng.randrange(100, 500)
     return rng.randrange(500, 1000)
+
+# -------------------- User mistakes -----------------------------
+LOGIN_TYPO_RATE = 0.10 # % of logins with typo
+SECOND_TYPO_RATE = 0.25 
+ABANDON_RATE = 0.07 # chance of filling some form then not submitting
+FORM_STATES = {"DEPOSIT", "BILL", "BENEFICIARY", "TRANSFER", "PROFILE"}
+MISTAKE_SEED_OFFSET = 7777
+
+def pick_typos(mrng):
+    if mrng.random() >= LOGIN_TYPO_RATE:
+        return 0
+    return 2 if mrng.random() < SECOND_TYPO_RATE else 1
+
+def abandon_partial(mrng, user_input, state):
+    """ what the user had typed before he stopped filling the form (None, "") = just looked and left"""
+    if mrng.random() < 0.4:
+        return None, ""
+    if state == "DEPOSIT":
+        return S.DEPOSIT["amount"], str(amount(mrng))
+    if state == "TRANSFER":
+        return S.TRANSFER["amount"], str(amount(mrng))
+    if state == "BILL":
+        return S.BILL["number"], str(mrng.randint(100, 99999))
+    if state == "BENEFICIARY":
+        return S.BENEFICIARY["name"], user_input.first_name()
+    if state == "PROFILE":
+        email = user_input.email()
+        return S.PROFILE["email"], email[:mrng.randint(3, 8)]
+    return None, ""
+
 # --------------------- navigation tables ------------------------
 
 ## flow states in the app:
@@ -93,38 +125,45 @@ def pick_next_state(rng, state, transition):
 
     return rng.choices(states, weights = weights, k = 1)[0]
 
-def go_through_full_session(driver, rng, user_input, transitions, payees, max_steps):
-    path, steps = [], 0
+def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, max_steps):
+    path, steps, n_mistakes = [], 0, 0
     state = pick_next_state(rng, "START", transitions)
 
     while state != "END" and steps < max_steps:
-        path.append(state)
-        run_activity(driver, rng, user_input, state, payees)
-        # think(trng, 2.0)                              
+        if state in FORM_STATES and mrng.random() < ABANDON_RATE:
+            field, text = abandon_partial(mrng, user_input, state)
+            abandon_form(driver, state, field, text)
+            n_mistakes += 1
+        else:
+            run_activity(driver, rng, user_input, state, payees)
+        path.append(state)                              
         steps += 1
         state = pick_next_state(rng, state, transitions)
-    return path
+    return path, n_mistakes
 
 # --------------- Two user types flow ------------------
 
 def login_session_flow(seed, user="dinesh", pw="Dinesh@123$", max_steps=10, debug=False):
     rng = random.Random(seed)
+    mrng = random.Random(seed + MISTAKE_SEED_OFFSET)
     user_input, payees = UserInput(seed), []
     driver = start_driver()
     try:
-        set_ip_and_port(driver)
-        login(driver, user, pw)
+        n_typos = pick_typos(mrng)
+        login_with_typos(driver, user, pw, mrng, n_typos)
         think(3)
-        path = go_through_full_session(driver, rng, user_input, FULL_TRANSITIONS, payees, max_steps)
+        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, 
+                                       FULL_TRANSITIONS, payees, max_steps)
     finally:
         driver.quit()
 
     if debug:
         print(f"seed:{seed} [login {user}] " + " -> ".join(path))
-    return path
+    return path, n_typos + n_mistakes
 
 def signup_session_flow(seed, max_steps = 4, debug = False):
     rng = random.Random(seed)
+    mrng = random.Random(seed + MISTAKE_SEED_OFFSET)
     user_input, payees = UserInput(seed), []
     username = user_input.username()      
     password = user_input.password()
@@ -133,23 +172,25 @@ def signup_session_flow(seed, max_steps = 4, debug = False):
     email    = user_input.email()
     driver = start_driver()
     try:
-        set_ip_and_port(driver)
         signup(driver, username, 
                password, first, 
                last, email)
-        restart_and_login(driver, username, password)
+        n_typos = pick_typos(mrng)
+        restart_and_login(driver, username, password, mrng, n_typos)
         think(3)
-        path = go_through_full_session(driver, rng, user_input, NEWUSER_TRANSITIONS, payees, max_steps)
+        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, NEWUSER_TRANSITIONS, payees, max_steps)
     finally:
         driver.quit()
 
     if debug:
         print(f"seed:{seed} [signup {username}] " + " -> ".join(path))
-    return path
+    return path, n_mistakes + n_typos
 
 # ----------- Entry point (decide the user type) -----------------
 def start_journey(seed, signup_rate=0.15, debug = False):
     """collect.py calls this ~85% as logins, ~15% new-user signups"""
+
+    seed_time(seed) # makes the pause lengths reproducible for this seed
 
     if random.Random(seed + 999).random() < signup_rate:
                 return signup_session_flow(seed, debug=debug)
