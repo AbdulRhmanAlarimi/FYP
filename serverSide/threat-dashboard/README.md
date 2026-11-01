@@ -75,6 +75,7 @@ Example:
 | POST | `/events` | Android RASP webhook (returns `{"action":"allow"}`) |
 | GET | `/events` | Raw stored events |
 | GET | `/api/alerts` | List threats (`source`, `severity`, `status` filters) |
+| GET | `/api/alerts/stats` | SIEM-style chart aggregates (`days` query, default 14) |
 | POST | `/api/alerts` | Ingest ML (or manual) alert |
 | GET | `/api/alerts/{id}` | Alert detail |
 | PATCH | `/api/alerts/{id}` | Acknowledge (`{"status":"acked"}`) |

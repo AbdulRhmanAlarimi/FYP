@@ -8,6 +8,7 @@ from app.schemas import (
     AlertCreate,
     AlertListResponse,
     AlertOut,
+    AlertStats,
     AlertStatusUpdate,
 )
 from app.services import alerts as alerts_service
@@ -19,6 +20,15 @@ def _optional_filter(value: Optional[str]) -> Optional[str]:
     if value is None or value == "":
         return None
     return value
+
+
+@router.get("/alerts/stats", response_model=AlertStats)
+def alert_stats(
+    days: int = Query(default=14, ge=1, le=90),
+    db: Session = Depends(get_db),
+):
+    """SIEM-style aggregates for dashboard charts."""
+    return alerts_service.get_alert_stats(db, days=days)
 
 
 @router.get("/alerts", response_model=AlertListResponse)

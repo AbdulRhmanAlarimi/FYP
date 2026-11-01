@@ -67,3 +67,25 @@ class AlertListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class NamedCount(BaseModel):
+    name: str
+    count: int
+
+
+class TimelinePoint(BaseModel):
+    date: str
+    count: int
+
+
+class AlertStats(BaseModel):
+    total: int
+    open: int
+    acked: int
+    critical_open: int
+    by_severity: list[NamedCount]
+    by_source: list[NamedCount]
+    by_status: list[NamedCount]
+    top_event_types: list[NamedCount]
+    timeline: list[TimelinePoint]

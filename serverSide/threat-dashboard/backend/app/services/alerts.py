@@ -1,10 +1,17 @@
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Alert
-from app.schemas import AlertCreate, RaspEvent
+from app.schemas import (
+    AlertCreate,
+    AlertStats,
+    NamedCount,
+    RaspEvent,
+    TimelinePoint,
+)
 from app.services.classify import ThreatMatch, classify_rasp_event
 
 
@@ -99,3 +106,62 @@ def update_alert_status(db: Session, alert: Alert, status: str) -> Alert:
     alert.status = status
     db.add(alert)
     return alert
+
+
+def _count_by(db: Session, column) -> list[NamedCount]:
+    rows = db.execute(
+        select(column, func.count())
+        .where(column.is_not(None))
+        .group_by(column)
+        .order_by(func.count().desc())
+    ).all()
+    return [NamedCount(name=str(name), count=int(count)) for name, count in rows if name]
+
+
+def get_alert_stats(db: Session, *, days: int = 14) -> AlertStats:
+    days = min(max(days, 1), 90)
+    total = int(db.scalar(select(func.count()).select_from(Alert)) or 0)
+    open_count = int(
+        db.scalar(select(func.count()).select_from(Alert).where(Alert.status == "open")) or 0
+    )
+    acked_count = int(
+        db.scalar(select(func.count()).select_from(Alert).where(Alert.status == "acked")) or 0
+    )
+    critical_open = int(
+        db.scalar(
+            select(func.count())
+            .select_from(Alert)
+            .where(Alert.status == "open", Alert.severity == "critical")
+        )
+        or 0
+    )
+
+    top_event_types = _count_by(db, Alert.event_type)[:8]
+
+    since = datetime.now(timezone.utc) - timedelta(days=days - 1)
+    # SQLite-friendly day buckets from created_at
+    day_expr = func.strftime("%Y-%m-%d", Alert.created_at)
+    timeline_rows = db.execute(
+        select(day_expr, func.count())
+        .where(Alert.created_at >= since)
+        .group_by(day_expr)
+        .order_by(day_expr.asc())
+    ).all()
+    counts = {str(day): int(count) for day, count in timeline_rows if day}
+
+    timeline: list[TimelinePoint] = []
+    for offset in range(days):
+        day = (since + timedelta(days=offset)).date().isoformat()
+        timeline.append(TimelinePoint(date=day, count=counts.get(day, 0)))
+
+    return AlertStats(
+        total=total,
+        open=open_count,
+        acked=acked_count,
+        critical_open=critical_open,
+        by_severity=_count_by(db, Alert.severity),
+        by_source=_count_by(db, Alert.source),
+        by_status=_count_by(db, Alert.status),
+        top_event_types=top_event_types,
+        timeline=timeline,
+    )
