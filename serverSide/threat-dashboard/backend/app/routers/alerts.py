@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -15,15 +15,35 @@ from app.services import alerts as alerts_service
 router = APIRouter(prefix="/api", tags=["alerts"])
 
 
+def _optional_filter(value: Optional[str]) -> Optional[str]:
+    if value is None or value == "":
+        return None
+    return value
+
+
 @router.get("/alerts", response_model=AlertListResponse)
 def list_alerts(
-    source: Optional[Literal["rasp", "ml"]] = Query(default=None),
-    severity: Optional[Literal["low", "medium", "high", "critical"]] = Query(default=None),
-    status: Optional[Literal["open", "acked"]] = Query(default=None),
+    source: Optional[str] = Query(default=None),
+    severity: Optional[str] = Query(default=None),
+    status: Optional[str] = Query(default=None),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
+    source = _optional_filter(source)
+    severity = _optional_filter(severity)
+    status = _optional_filter(status)
+
+    allowed_sources = {None, "rasp", "ml"}
+    allowed_severities = {None, "low", "medium", "high", "critical"}
+    allowed_statuses = {None, "open", "acked"}
+    if source not in allowed_sources:
+        raise HTTPException(status_code=422, detail="Invalid source filter")
+    if severity not in allowed_severities:
+        raise HTTPException(status_code=422, detail="Invalid severity filter")
+    if status not in allowed_statuses:
+        raise HTTPException(status_code=422, detail="Invalid status filter")
+
     items, total = alerts_service.list_alerts(
         db,
         source=source,
