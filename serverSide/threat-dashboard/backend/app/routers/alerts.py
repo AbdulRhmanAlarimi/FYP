@@ -10,8 +10,10 @@ from app.schemas import (
     AlertOut,
     AlertStats,
     AlertStatusUpdate,
+    SeedResponse,
 )
 from app.services import alerts as alerts_service
+from app.services.seed import seed_demo_alerts
 
 router = APIRouter(prefix="/api", tags=["alerts"])
 
@@ -29,6 +31,20 @@ def alert_stats(
 ):
     """SIEM-style aggregates for dashboard charts."""
     return alerts_service.get_alert_stats(db, days=days)
+
+
+@router.post("/alerts/seed", response_model=SeedResponse)
+def seed_alerts(
+    force: bool = Query(default=False, description="Replace existing alerts with demo data"),
+    db: Session = Depends(get_db),
+):
+    """Load dummy RASP/ML alerts for local UI testing."""
+    result = seed_demo_alerts(db, force=force)
+    if result["created"] == 0 and result["skipped"] > 0:
+        message = f"Skipped — {result['skipped']} alerts already exist. Pass force=true to reset."
+    else:
+        message = f"Inserted {result['created']} demo alerts."
+    return SeedResponse(**result, message=message)
 
 
 @router.get("/alerts", response_model=AlertListResponse)

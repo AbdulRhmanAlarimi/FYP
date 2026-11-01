@@ -50,6 +50,16 @@ Vite proxies `/api` (and related paths) to the backend on `:8000`.
 
 Benign monitoring events are still stored under `GET /events`, but only risk signals become alerts.
 
+### Demo data
+
+If the charts look empty, load dummy RASP/ML alerts:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/alerts/seed?force=true"
+```
+
+Then refresh the dashboard. Use `force=true` only when you want to wipe and reload the demo set.
+
 ### ML alerts (later)
 
 Do not change the `ML/` folder for this feature. When a model exists, post alerts to:

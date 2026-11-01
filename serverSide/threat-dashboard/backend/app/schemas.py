@@ -89,3 +89,10 @@ class AlertStats(BaseModel):
     by_status: list[NamedCount]
     top_event_types: list[NamedCount]
     timeline: list[TimelinePoint]
+
+
+class SeedResponse(BaseModel):
+    created: int
+    skipped: int
+    forced: int
+    message: str
