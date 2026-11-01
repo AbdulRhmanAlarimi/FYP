@@ -82,3 +82,17 @@ Example:
 ## Theme
 
 The UI follows the OS preference (`prefers-color-scheme`) for light/dark mode via MUI.
+
+## Docker
+
+From this folder:
+
+```powershell
+docker compose up --build
+```
+
+- API (emulator target): http://127.0.0.1:8000  (`10.0.2.2:8000` from the emulator)
+- Dashboard: http://127.0.0.1:5173
+- Docs: http://127.0.0.1:8000/docs
+
+SQLite data is kept in the `alert-data` Docker volume.
