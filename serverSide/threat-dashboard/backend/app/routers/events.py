@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models import Event
 from app.schemas import EventActionResponse, EventOut, RaspEvent
+from app.services import alerts as alerts_service
 
 router = APIRouter(tags=["events"])
 
@@ -19,6 +20,7 @@ def receive_event(event: RaspEvent, db: Session = Depends(get_db)):
         data=event.data,
     )
     db.add(row)
+    alerts_service.maybe_create_rasp_alert(db, event)
     db.commit()
     return EventActionResponse()
 
