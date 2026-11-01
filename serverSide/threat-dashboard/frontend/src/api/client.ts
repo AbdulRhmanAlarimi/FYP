@@ -1,4 +1,4 @@
-import type { Alert, AlertFilters, AlertListResponse, AlertStatus } from './types'
+import type { Alert, AlertFilters, AlertListResponse, AlertStats, AlertStatus } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
@@ -41,6 +41,14 @@ export async function updateAlertStatus(id: number, status: AlertStatus): Promis
   })
   if (!res.ok) {
     throw new Error(`Failed to update alert (${res.status})`)
+  }
+  return res.json()
+}
+
+export async function fetchAlertStats(days = 14): Promise<AlertStats> {
+  const res = await fetch(`${API_BASE}/api/alerts/stats?days=${days}`)
+  if (!res.ok) {
+    throw new Error(`Failed to load alert stats (${res.status})`)
   }
   return res.json()
 }

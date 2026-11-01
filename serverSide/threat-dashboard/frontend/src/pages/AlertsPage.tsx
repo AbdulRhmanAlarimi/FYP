@@ -8,15 +8,18 @@ import {
   Typography,
 } from '@mui/material'
 import { useCallback, useEffect, useState } from 'react'
-import { fetchAlerts, updateAlertStatus } from '../api/client'
-import type { Alert, AlertFilters } from '../api/types'
+import { fetchAlertStats, fetchAlerts, updateAlertStatus } from '../api/client'
+import type { Alert, AlertFilters, AlertStats } from '../api/types'
 import { AlertDetailDialog } from '../components/AlertDetailDialog'
 import { AlertFiltersBar } from '../components/AlertFilters'
 import { AlertsTable } from '../components/AlertsTable'
+import { DashboardCharts } from '../components/DashboardCharts'
+import { StatCards } from '../components/StatCards'
 
 export function AlertsPage() {
   const [filters, setFilters] = useState<AlertFilters>({ status: 'open' })
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [stats, setStats] = useState<AlertStats | null>(null)
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,9 +30,13 @@ export function AlertsPage() {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchAlerts(filters)
-      setAlerts(data.items)
-      setTotal(data.total)
+      const [alertData, statsData] = await Promise.all([
+        fetchAlerts(filters),
+        fetchAlertStats(14),
+      ])
+      setAlerts(alertData.items)
+      setTotal(alertData.total)
+      setStats(statsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load alerts')
     } finally {
@@ -59,10 +66,10 @@ export function AlertsPage() {
       <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}>
         <Box>
           <Typography variant="h4" gutterBottom>
-            Alerts
+            Security Operations
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Threats from RASP rules and future ML detections ({total} matching).
+            SIEM-style overview of RASP and ML threats ({total} matching current filters).
           </Typography>
         </Box>
         <IconButton aria-label="Refresh alerts" onClick={() => void load()} disabled={loading}>
@@ -70,20 +77,38 @@ export function AlertsPage() {
         </IconButton>
       </Stack>
 
-      <AlertFiltersBar value={filters} onChange={setFilters} />
-
       {error && (
         <MuiAlert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
           {error}
         </MuiAlert>
       )}
 
-      {loading ? (
+      {loading && !stats ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
       ) : (
-        <AlertsTable alerts={alerts} onSelect={setSelected} />
+        <>
+          {stats && (
+            <>
+              <StatCards stats={stats} />
+              <DashboardCharts stats={stats} />
+            </>
+          )}
+
+          <Typography variant="h5" sx={{ mb: 1 }}>
+            Alert feed
+          </Typography>
+          <AlertFiltersBar value={filters} onChange={setFilters} />
+
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={28} />
+            </Box>
+          ) : (
+            <AlertsTable alerts={alerts} onSelect={setSelected} />
+          )}
+        </>
       )}
 
       <AlertDetailDialog

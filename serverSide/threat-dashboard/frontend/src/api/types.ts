@@ -29,3 +29,25 @@ export type AlertFilters = {
   severity?: AlertSeverity | ''
   status?: AlertStatus | ''
 }
+
+export type NamedCount = {
+  name: string
+  count: number
+}
+
+export type TimelinePoint = {
+  date: string
+  count: number
+}
+
+export type AlertStats = {
+  total: number
+  open: number
+  acked: number
+  critical_open: number
+  by_severity: NamedCount[]
+  by_source: NamedCount[]
+  by_status: NamedCount[]
+  top_event_types: NamedCount[]
+  timeline: TimelinePoint[]
+}
