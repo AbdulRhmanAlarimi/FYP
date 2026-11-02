@@ -8,6 +8,9 @@ class RaspEvent(BaseModel):
     timestamp: str
     component: str
     data: dict[str, Any]
+    #added for launch_id and seq
+    seq: int = 0
+    launch_id: str = ""
 
 app = FastAPI()
 events = []

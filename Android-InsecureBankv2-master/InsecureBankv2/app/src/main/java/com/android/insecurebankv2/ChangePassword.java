@@ -141,10 +141,16 @@ public class ChangePassword extends Activity {
 			pattern = Pattern.compile(PASSWORD_PATTERN);
 			matcher = pattern.matcher(changePassword_text.getText().toString());
 
+		
 			// Check if the password is complex enough
 			boolean isStrong= matcher.matches();
 			if (isStrong){
 				responseBody = httpclient.execute(httppost);
+				Rasp.network(serverip, serverport, "http", "POST", "/changepassword",
+						responseBody.getStatusLine().getStatusCode(),
+						responseBody.getEntity().getContentLength(), "ChangePassword");
+
+						
 				InputStream in = responseBody.getEntity().getContent();
 				result = convertStreamToString( in );
 				result = result.replace("\n", "");
@@ -160,9 +166,14 @@ public class ChangePassword extends Activity {
 									jsonObject = new JSONObject(result);
 									String login_response_message = jsonObject.getString("message");
 									Toast.makeText(getApplicationContext(), login_response_message + ". Restart application to Continue.", Toast.LENGTH_LONG).show();
-                                    TelephonyManager phoneManager = (TelephonyManager)getApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
-                                    String phoneNumber = phoneManager.getLine1Number();
-                                    System.out.println("phonno:"+phoneNumber);
+                                    String phoneNumber = null;
+									try {
+										TelephonyManager phoneManager = (TelephonyManager)getApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
+										phoneNumber = phoneManager.getLine1Number();
+									} catch (SecurityException e) {
+										e.printStackTrace();
+									}
+									if (phoneNumber == null) phoneNumber = "";
 
                                     /*
                                     The function that handles the SMS activity

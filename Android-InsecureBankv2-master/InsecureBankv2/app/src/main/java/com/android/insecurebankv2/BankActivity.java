@@ -161,13 +161,15 @@ public abstract class BankActivity extends Activity {
                 }
             }
 
-            @Override
             protected void onPostExecute(String result) {
-                if (result == null) {
-                    callback.onError(failure == null ? "error" : failure);
-                } else {
-                    callback.onResult(result);
-                }
+                boolean ok = (result != null);
+                Rasp.network(BankSession.serverIp(BankActivity.this),
+                            BankSession.serverPort(BankActivity.this),
+                            "http", "POST", endpoint,
+                            ok ? 200 : 0, ok ? result.length() : 0,
+                            BankActivity.this.getClass().getSimpleName());
+                if (result == null) callback.onError(failure == null ? "error" : failure);
+                else                callback.onResult(result);
             }
         }.execute(endpoint);
     }

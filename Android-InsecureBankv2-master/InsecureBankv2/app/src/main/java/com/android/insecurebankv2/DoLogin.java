@@ -168,6 +168,15 @@ public class DoLogin extends Activity {
 			result = convertStreamToString( in );
 			result = result.replace("\n", "");
 			if (result != null) {
+
+				boolean loginOk = result.indexOf("Correct Credentials") != -1;
+				try {
+					JSONObject d = new JSONObject();
+					d.put("input_source", "LOGIN_RESPONSE");
+					d.put("login_result", loginOk ? "SUCCESS" : "FAILURE");
+					Rasp.send("ME-06", "EXTERNAL_INPUT", "DoLogin", d);
+				} catch (Exception ignored) {};
+
 				if (result.indexOf("Correct Credentials") != -1) {
 
 					//Add for ME-09, ME-12, ME-13, ME-04
@@ -190,6 +199,7 @@ public class DoLogin extends Activity {
 				} else {
 					Intent xi = new Intent(getApplicationContext(), WrongLogin.class);
 					xi.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+					startActivity(xi);
 				}
 			}
 		}

@@ -20,7 +20,11 @@ public class Rasp {
     // 10.0.2.2 = your PC, seen from the emulator
     private static final String SERVER = "http://10.0.2.2:8000/events";
 
-    //Data that for json 
+
+    private static final java.util.concurrent.atomic.AtomicInteger SEQ =
+        new java.util.concurrent.atomic.AtomicInteger(0);
+    private static final String LAUNCH_ID = java.util.UUID.randomUUID().toString();
+
     public static void send(
         final String eventId,
         final String eventType,
@@ -28,13 +32,16 @@ public class Rasp {
         final JSONObject data
     )
     {
+         final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
         new Thread(new Runnable(){ // network is not allowed on main thread
             @Override 
             public void run(){
                 try{
                     JSONObject event =  new JSONObject();
+                    event.put("seq", seq);                  // NEW
+                    event.put("launch_id", LAUNCH_ID);      // NEW
                     event.put("event_id",eventId);
-                     event.put("event_type", eventType);
+                    event.put("event_type", eventType);
                     event.put("timestamp", now());
                     event.put("component", component);
                     event.put("data", data);
@@ -264,6 +271,7 @@ public class Rasp {
             send("ME-08", "WEBVIEW_ACTIVITY", component, d);
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
+
 
     private static String now(){
         SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",Locale.US);
