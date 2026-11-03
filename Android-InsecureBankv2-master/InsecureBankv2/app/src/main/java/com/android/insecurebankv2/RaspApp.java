@@ -16,6 +16,7 @@ import java.security.MessageDigest;
 
 public class RaspApp extends Application {
     // After the first run, paste your integrity_value here (step 4)
+    
     private static final String EXPECTED_CERT_SHA256 = "b8fb634add85da8d849acc19380819ca8ae2bc7ee10726f572db4ac452f66c18";
     public static boolean loggedIn = false;
 
