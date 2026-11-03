@@ -22,6 +22,10 @@ makejson = json.dumps
 
 app = Flask(__name__)
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()     # fresh DB session per request, so one failed request can't break later ones
+
 DEFAULT_PORT_NO = 8888
 
 
@@ -371,6 +375,7 @@ def dotransfer():
 
     u = User.query.filter(User.username == user).first()
 
+    from_acc = to_acc = None    # also defined on the wrong-credentials path, used in the reply below
     if not u or u.password != request.form["password"]:
         Responsemsg = "Wrong Credentials so trx fail"
     else:

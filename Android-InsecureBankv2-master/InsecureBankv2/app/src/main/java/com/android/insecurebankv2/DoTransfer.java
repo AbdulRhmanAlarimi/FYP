@@ -148,6 +148,7 @@ public class DoTransfer extends Activity {
 			SharedPreferences settings = getSharedPreferences(MYPREFS2, 0);
 			final String username = settings.getString("EncryptedUsername", null);
 			byte[] usernameBase64Byte = Base64.decode(username, Base64.DEFAULT);
+			usernameBase64ByteString = new String(usernameBase64Byte);	// Android's default charset is UTF-8
 			final String password = settings.getString("superSecurePassword", null);
 			try {
 				passNormalized = getNormalizedPassword(password);

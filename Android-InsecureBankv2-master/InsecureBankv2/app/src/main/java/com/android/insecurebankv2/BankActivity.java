@@ -9,6 +9,7 @@ import android.view.MenuItem;
 
 import com.marcohc.toasteroid.Toasteroid;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -129,6 +130,7 @@ public abstract class BankActivity extends Activity {
 
         new AsyncTask<String, String, String>() {
             String failure = null;
+            int status = 0;    // real HTTP status; stays 0 when the server can't be reached
 
             @Override
             protected String doInBackground(String... args) {
@@ -142,7 +144,9 @@ public abstract class BankActivity extends Activity {
                 }
                 InputStream in = null;
                 try {
-                    in = httpclient.execute(httppost).getEntity().getContent();
+                    HttpResponse response = httpclient.execute(httppost);
+                    status = response.getStatusLine().getStatusCode();
+                    in = response.getEntity().getContent();
                     String body = convertStreamToString(in);
                     return body == null ? "" : body.replace("\n", "");
                 } catch (IOException e) {
@@ -166,7 +170,7 @@ public abstract class BankActivity extends Activity {
                 Rasp.network(BankSession.serverIp(BankActivity.this),
                             BankSession.serverPort(BankActivity.this),
                             "http", "POST", endpoint,
-                            ok ? 200 : 0, ok ? result.length() : 0,
+                            status, ok ? result.length() : 0,
                             BankActivity.this.getClass().getSimpleName());
                 if (result == null) callback.onError(failure == null ? "error" : failure);
                 else                callback.onResult(result);

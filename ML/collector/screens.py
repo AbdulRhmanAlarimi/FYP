@@ -38,7 +38,8 @@ TILE = {
     "profile":         "Profile",
     "deposit":         "Deposit Money",    
     "transfer":        "Transfer",
-    "change_password" : "Change Password"
+    "change_password" : "Change Password",
+    "statement":        "View Statement"
 }
 ACCOUNT = {
     "refresh": rid("button_refresh"),
