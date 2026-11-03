@@ -29,6 +29,10 @@ class UserInput:
         return self.fake.user_name()[:12] + str(self.rng.randint(100, 999))
     def password(self):
         return self.fake.password()
+    def strong_password(self):
+        """6-20 chars, a digit, a lower, an upper, one of @#$% (the app's rule)"""
+        core = self.fake.password(length=9, special_chars=False, digits=True, upper_case=True, lower_case=True)
+        return core + self.rng.choice("@#$%") + str(self.rng.randint(0, 9))
     
 def amount(rng):
     r = rng.random()
@@ -74,26 +78,28 @@ def abandon_partial(mrng, user_input, state):
 # this work for loged in user
 FULL_TRANSITIONS = {
     "START":     [("ACCOUNT",5),("HISTORY",3),("DEPOSIT",2),("BILL",2),("TRANSFER",2),("BENEFICIARY",1),("PROFILE",1)],
-    "ACCOUNT":   [("HISTORY",3),("TRANSFER",2),("DEPOSIT",2),("BILL",1),("PROFILE",1),("END",3)],
+    "ACCOUNT":   [("HISTORY",3),("TRANSFER",2),("DEPOSIT",2),("BILL",1),("PROFILE",1),("STATEMENT",1),("END",3)],
     "HISTORY":   [("ACCOUNT",2),("TRANSFER",1),("BILL",1),("END",4)],
     "BENEFICIARY": [("TRANSFER",6),("ACCOUNT",1),("END",1)],
-    "TRANSFER": [("HISTORY",3),("ACCOUNT",2),("BENEFICIARY",1),("DEPOSIT",1),("END",3)],
+    "TRANSFER": [("HISTORY",3),("ACCOUNT",2),("BENEFICIARY",1),("DEPOSIT",1),("STATEMENT",1),("END",3)],
     "BILL":     [("HISTORY",2),("ACCOUNT",1),("END",4)],
     "PROFILE":  [("ACCOUNT",1),("END",5)],
     "DEPOSIT":  [("ACCOUNT",3),("HISTORY",2),("END",3)],
+    "STATEMENT": [("ACCOUNT",2),("HISTORY",1),("END",3)],
 }
 # new users flows
 NEWUSER_TRANSITIONS = {
     "START":   [("ACCOUNT",4),("PROFILE",2),("HISTORY",2),("END",2)],
-    "ACCOUNT": [("HISTORY",2),("PROFILE",1),("END",4)],
+    "ACCOUNT": [("HISTORY",2),("PROFILE",1),("CHANGEPW",1),("END",4)],
     "HISTORY": [("ACCOUNT",1),("END",4)],
-    "PROFILE": [("ACCOUNT",1),("END",4)],
+    "PROFILE": [("ACCOUNT",1),("CHANGEPW",1),("END",4)],
+    "CHANGEPW": [("ACCOUNT",1),("END",4)],
 }
 
 # ---------------- Applying full sessions --------------------
 
 # applying one state
-def run_activity(driver, rng, input, state, payees):
+def run_activity(driver, rng, input, state, payees, creds=None):
     if state == "ACCOUNT":
         view_account_detalis(driver)
     if state == "HISTORY":
@@ -116,6 +122,12 @@ def run_activity(driver, rng, input, state, payees):
                  str(rng.randint(1000000, 9999999)), str(amount(rng)))
     if state == "DEPOSIT":
         deposit(driver, rng.choice(DINESH_ACCOUNTS), str(amount(rng)))
+    if state == "STATEMENT":
+        view_statement(driver)
+    if state == "CHANGEPW" and creds is not None:
+        new_pw = input.strong_password()
+        change_password_and_relogin(driver, creds["user"], new_pw)
+        creds["pw"] = new_pw
 
 def pick_next_state(rng, state, transition):
     # pick next state from the list of the next posibile by weighted by thier wieght
@@ -125,7 +137,7 @@ def pick_next_state(rng, state, transition):
 
     return rng.choices(states, weights = weights, k = 1)[0]
 
-def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, max_steps):
+def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, max_steps, creds=None):
     path, steps, n_mistakes = [], 0, 0
     state = pick_next_state(rng, "START", transitions)
 
@@ -135,7 +147,7 @@ def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, 
             abandon_form(driver, state, field, text)
             n_mistakes += 1
         else:
-            run_activity(driver, rng, user_input, state, payees)
+            run_activity(driver, rng, user_input, state, payees, creds)
         path.append(state)                              
         steps += 1
         state = pick_next_state(rng, state, transitions)
@@ -178,7 +190,8 @@ def signup_session_flow(seed, max_steps = 4, debug = False):
         n_typos = pick_typos(mrng)
         restart_and_login(driver, username, password, mrng, n_typos)
         think(3)
-        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, NEWUSER_TRANSITIONS, payees, max_steps)
+        creds = {"user": username, "pw": password}
+        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, NEWUSER_TRANSITIONS, payees, max_steps, creds=creds)
     finally:
         driver.quit()
 

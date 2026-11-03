@@ -28,6 +28,7 @@ def run_one_flow(seed):
 
     _, n_mistakes = start_journey(seed)
     time.sleep(SETTLE_SEC)
+    ended = datetime.now(timezone.utc).isoformat()
 
     allev = get_events()
     if len(allev) < baseline:  # hook was restarted, list shrank
@@ -35,14 +36,14 @@ def run_one_flow(seed):
 
     session_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}_{seed}"
     path, n = write_session(allev[baseline:], session_id)
-    append_manifest([session_id, LABEL, seed, n, started, os.path.basename(path), "", n_mistakes])
+    append_manifest([session_id, LABEL, seed, n, started, ended, os.path.basename(path), "", n_mistakes])
     print(f"  {session_id}: {n} events -> {os.path.basename(path)}")
 
 
 def write_session(events, session_id):
     os.makedirs(OUT_DIR, exist_ok=True)
-    path = os.path.join(OUT_DIR, f"{LABEL}_{session_id}.jsonl")
-    events = sorted(events, key=lambda e: e.get("timestamp", ""))
+    path = os.path.join(OUT_DIR, f"{session_id}.jsonl")
+    events = sorted(events, key=lambda e: (e.get("timestamp", ""), e.get("seq", 0)))
 
     with open(path, "w", encoding="utf-8") as f:
         for e in events:
@@ -57,7 +58,7 @@ def append_manifest(row):
     with open(MANIFEST, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         if new:
-            w.writerow(["session_id", "label", "seed", "n_events", "started_at", "file", "attack_class", "n_mistakes"])
+            w.writerow(["session_id", "label", "seed", "n_events", "started_at", "ended_at", "file", "attack_class", "n_mistakes"])
         w.writerow(row)
 
 def next_seed(default=0):

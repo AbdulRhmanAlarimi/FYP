@@ -74,6 +74,18 @@ def view_account_detalis(driver):
     tap(driver, S.ACCOUNT["refersh_btn"])
     go_back(driver)
 
+def view_statement(driver):
+    """use of the View Statement tile (file read + WebView load)"""
+    open_tile(driver, S.TILE["statement"])
+    think(READ_PAUSE)                     
+    go_back(driver)
+
+def change_password_and_relogin(driver, user, new_passw):
+    """ change password and  restart then log in again"""
+    change_password_from_tile(driver, new_passw)
+    think(READ_PAUSE)                      
+    restart_and_login(driver, user, new_passw)
+
 # ------- Sign up -----------
 def signup(driver, user, pw, first, last, email="", phone="", address=""):
     tap(driver, S.LOGIN["create_user"])
