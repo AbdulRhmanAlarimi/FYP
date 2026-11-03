@@ -49,6 +49,13 @@ def type_in(driver, locator, text, timeout=15):
     if element.text != str(text):
         driver.execute_script("mobile: replaceElementValue", {"elementId": element.id, "text": str(text)})
 
+    # close the on-screen keyboard so it can't cover the next field or button
+    try:
+        if driver.is_keyboard_shown():
+            driver.hide_keyboard()
+    except Exception:
+        pass
+
 def by_text(text):
     return (AppiumBy.XPATH, f'//*[@text="{text}"]')
 

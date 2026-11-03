@@ -15,6 +15,7 @@ def select_from_dropdown(driver, dropwon_id, tile_name):
 
 def go_back(driver):
     think(1.5)      # glance at the result/confirmation, then leave
+    hide_keyboard(driver)
     driver.back()
 
 # ------- Login and manage account actions -----------
