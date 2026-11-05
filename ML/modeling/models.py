@@ -1,9 +1,9 @@
-import math
+import math, json
 from collections import Counter, defaultdict
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from pyod.models.ecod import ECOD
-from pyod.models.iforest import IsolationForest
+from pyod.models.iforest import IForest
 from pyod.models.hbos import HBOS
 
 
@@ -12,7 +12,7 @@ class TabularModel:
     """ECOD, IsolationForest, or HBOS, trained on Table 1 of being data"""
 
     def __init__(self, model_name):
-        self.model = {"ECOD": ECOD(), "IForest": IsolationForest(random_state=0), "HBOS": HBOS()}[model_name]
+        self.model = {"ECOD": ECOD(), "IForest": IForest(random_state=0), "HBOS": HBOS()}[model_name]
 
     def fit(self, X):
         self.scaler = StandardScaler().fit(X)
@@ -56,6 +56,18 @@ class MarkovModel:
 
         return pd.Series(scores)
 
+    def export(self, path, threshold):
+        """save what the phone needs: the surprise of each step pair seen in training,
+        the surprise of a never-seen pair after each step, and the alarm threshold"""
+
+        model = {"threshold": threshold,
+                 "unseen_step": math.log(self.num_steps),     # previous step (events) never seen in training 
+                 "unseen_after": {a: math.log(sum(c.values()) + self.num_steps) for a, c in self.counting_next.items()},
+                 "pairs": {a: {b: self.surprise(a, b) for b in c} for a, c in self.counting_next.items()}}
+        
+        with open(path, "w") as f:
+            json.dump(model, f, indent=1)
+
 # ------------- baseline ---------------------
 class ZScoreBaseline:
     """
@@ -68,7 +80,7 @@ class ZScoreBaseline:
         self.mean, self.std = X.mean(), X.std()
         return self
     def score(self, X):
-        diff = (X - self.mean()).abs()
+        diff = (X - self.mean).abs()
         z = diff / self.std.where(self.std > 0)
         z = z.fillna((diff > 0) * 1000.0) # feature with std == 0 get z = nan, so if they are different 
                                           # in the new X, fill nan with 1000
