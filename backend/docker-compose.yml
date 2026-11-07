@@ -1,2 +1,41 @@
-# Services (API, Postgres, Grafana) filled in later commits.
-services: {}
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: rasp
+      POSTGRES_PASSWORD: rasp
+      POSTGRES_DB: rasp
+    ports:
+      - "5432:5432"
+    volumes:
+      - rasp-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rasp -d rasp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://rasp:rasp@db:5432/rasp
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  rasp-pg-data:
