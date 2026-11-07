@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: RASP Postgres
+    uid: rasp-postgres
+    type: postgres
+    access: proxy
+    url: db:5432
+    user: rasp
+    secureJsonData:
+      password: rasp
+    jsonData:
+      database: rasp
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    isDefault: true
+    editable: false
