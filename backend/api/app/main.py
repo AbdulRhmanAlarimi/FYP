@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.db import init_db
-from app.routers import events, health
+from app.routers import events, health, seed
 
 
 @asynccontextmanager
@@ -25,3 +25,5 @@ app = FastAPI(
 
 app.include_router(health.router)
 app.include_router(events.router)
+app.include_router(seed.router)
+
