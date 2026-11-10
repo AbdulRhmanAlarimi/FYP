@@ -1,0 +1,7 @@
+{
+  "id": "SQLI-002",
+  "name": "UNION SELECT injection",
+  "severity": "CRITICAL",
+  "pattern": "(?i)\\bunion\\s+(all\\s+)?select\\b",
+  "description": "UNION SELECT arm appended to the original query to read other tables/columns"
+}
