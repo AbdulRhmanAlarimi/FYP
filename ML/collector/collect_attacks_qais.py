@@ -39,7 +39,14 @@ def run_one(seed, attack_class, func, mode):
     if len(allev) < baseline:
         baseline = 0
     session_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}_{seed}"
-    path, n = collect.write_session(allev[baseline:], session_id)
+    new_events = allev[baseline:]
+    if not new_events:
+        # empty session = something is broken (uninstrumented APK, hook down);
+        # write nothing so labels.csv never gets an attack row with no evidence
+        print(f"  {session_id} [{attack_class}/{mode}/{result.get('attack', '?')}]: "
+              f"0 events - DISCARDED (hooked APK installed? hook reachable?)")
+        return
+    path, n = collect.write_session(new_events, session_id)
     # n_mistakes column mirrors collect.py; for attacks it counts attack steps (1)
     append_manifest([session_id, LABEL, seed, n, started, ended,
                      os.path.basename(path), attack_class, 1])
