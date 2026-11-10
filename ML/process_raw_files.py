@@ -57,7 +57,7 @@ def load_events(raw_dir):
     fields = pd.json_normalize(event_df["data"].tolist())  
     event_df = pd.concat([event_df.drop(columns="data"), fields], axis=1)
     event_df["t"] = pd.to_datetime(event_df["timestamp"], errors="coerce", utc=True, format="ISO8601")
-    return order_events(event_df)
+    return drop_leftovers(order_events(event_df))
 
 def order_events(event_df):
     """sort events by their session lunch, then by seq (hook own counter)"""
@@ -66,6 +66,15 @@ def order_events(event_df):
     event_df = event_df.sort_values(["session_id", "launch_start", "seq"])
 
     return event_df.drop(columns="launch_start").reset_index(drop=True)
+
+def drop_leftovers(events):                               
+    """drop the previous session's late events: a session starts at its first app launch
+    that opens the login screen, so any earlier launch in the file belongs to the session before"""
+
+    is_login = (events.event_id == "ME-09") & (events.component == "LoginActivity")
+    launch_has_login = is_login.groupby([events.session_id, events.launch_id]).transform("any")
+    keep = launch_has_login.groupby(events.session_id).cummax()
+    return events[keep].reset_index(drop=True)
 
 
 # ----------------------------- Table 1: per-session feature vector --------------------
