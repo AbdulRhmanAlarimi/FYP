@@ -6,13 +6,29 @@ set -u
 
 COLLECTOR_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$COLLECTOR_DIR/../.." && pwd)"
-VENV_PY="$COLLECTOR_DIR/.venv/bin/python"
+VENV_DIR="$COLLECTOR_DIR/.venv"
+VENV_PY="$VENV_DIR/bin/python"
 LOG_DIR="/tmp/opencode"
 mkdir -p "$LOG_DIR"
 
 HOOK_PORT=8000; BACKEND_PORT=8888; APPIUM_PORT=4723
 BACKEND_DIR="$ROOT/Android-InsecureBankv2-master/AndroLabServer"
 HOOK_DIR="$ROOT/serverSide/testHook"
+
+# ---- first run only: create the venv with everything the stack needs ----
+# collector: Appium + faker (requirements.txt)
+# hook:      fastapi + uvicorn (serverSide/testHook/src.app)
+# backend:   flask etc. (AndroLabServer/app.py) - sqlalchemy pinned <2 because
+#            it imports the pre-2.0 sqlalchemy.ext.declarative API
+# web.py is optional in the backend, so a failed install must not be fatal
+if [ ! -x "$VENV_PY" ]; then
+  echo ">> creating $VENV_PY (first run only) ..."
+  python3 -m venv "$VENV_DIR"
+  "$VENV_PY" -m pip install --quiet --upgrade pip
+  "$VENV_PY" -m pip install --quiet -r "$COLLECTOR_DIR/requirements.txt" \
+      fastapi uvicorn flask "sqlalchemy<2" simplejson cheroot
+  "$VENV_PY" -m pip install --quiet web.py || echo ">> web.py skipped (optional)"
+fi
 
 # Newest APK wins (debug build first, prebuilt root apk as fallback)
 APK="$(find "$ROOT/Android-InsecureBankv2-master/InsecureBankv2/app/build/outputs/apk" \
@@ -32,7 +48,7 @@ wait_for() { # port path label timeout_s
 }
 
 echo "== stack =="
-up $HOOK_PORT events    || { start hook    "$VENV_PY" -m uvicorn src.app:app --host 0.0.0.0 --port $HOOK_PORT; }
+up $HOOK_PORT events    || { (cd "$HOOK_DIR" && start hook "$VENV_PY" -m uvicorn src.app:app --host 0.0.0.0 --port $HOOK_PORT); }
 up $BACKEND_PORT login  || { (cd "$BACKEND_DIR" && start backend "$VENV_PY" app.py); }
 up $APPIUM_PORT status  || { start appium appium; }
 adb devices | grep -q "emulator-5554" || { start emulator emulator -avd AndroGOAT -no-window -no-audio -gpu angle_indirect -no-boot-anim; }

