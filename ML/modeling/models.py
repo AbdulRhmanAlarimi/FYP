@@ -4,15 +4,18 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from pyod.models.ecod import ECOD
 from pyod.models.iforest import IForest
-from pyod.models.hbos import HBOS
+from pyod.models.auto_encoder import AutoEncoder
 
 
 # -------------------- Models -----------------------------
 class TabularModel:
-    """ECOD, IsolationForest, or HBOS, trained on Table 1 of being data"""
+    """ECOD, IsolationForest, or AutoEncoder, trained on Table 1 of being data"""
 
     def __init__(self, model_name):
-        self.model = {"ECOD": ECOD(), "IForest": IForest(random_state=0), "HBOS": HBOS()}[model_name]
+        models = {"ECOD": lambda: ECOD(),
+                  "IForest": lambda: IForest(random_state=0),
+                  "AutoEncoder": lambda: AutoEncoder(random_state=0, preprocessing=False, verbose=0)}
+        self.model = models[model_name]()
 
     def fit(self, X):
         self.scaler = StandardScaler().fit(X)
