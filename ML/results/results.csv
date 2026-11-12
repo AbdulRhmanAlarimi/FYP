@@ -1,0 +1,7 @@
+model,false_alarms,FPR_%,detected,recall_%,ROC_AUC,PR_AUC,compromised_runtime_detected_%,deep_link_detected_%,injection_detected_%,insecure_storage_detected_%,network_detected_%,unauthorized_component_detected_%,weak_auth_detected_%,webview_xss_detected_%
+ECOD,12/459,2.6,47/165,28.5,0.767,0.641,47.1,50.0,20.8,0.0,26.1,57.9,35.3,0.0
+IForest,6/459,1.3,0/165,0.0,0.471,0.265,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+AutoEncoder,4/459,0.9,67/165,40.6,0.825,0.76,47.1,50.0,20.8,21.7,47.8,78.9,35.3,30.0
+Markov,12/459,2.6,101/165,61.2,0.847,0.828,100.0,95.5,41.7,26.1,78.3,84.2,41.2,30.0
+LSTM,3/459,0.7,97/165,58.8,0.891,0.875,100.0,95.5,37.5,17.4,73.9,84.2,41.2,30.0
+ZScoreBaseline,1/459,0.2,79/165,47.9,0.816,0.747,47.1,95.5,20.8,21.7,26.1,89.5,35.3,55.0
