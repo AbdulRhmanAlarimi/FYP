@@ -19,7 +19,7 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")   # .../ML
 sys.path.insert(0, ROOT)                                                # search ML/first
 
 import process_raw_files as prf
-from models import TabularModel, MarkovModel, ZScoreBaseline
+from models import TabularModel, MarkovModel, LSTMModel, ZScoreBaseline
 
 
 RESULTS_DIR = os.path.join(ROOT, "results")
@@ -99,6 +99,8 @@ def main():
 
     markov = MarkovModel().fit({s: sequences[s] for s in train})
     scores["Markov"] = markov.score(sequences)
+    train_sequences = {s: sequences[s] for s in train}
+    scores["LSTM"] = LSTMModel().fit(train_sequences).score(sequences)        # report only
     scores["ZScoreBaseline"] = ZScoreBaseline().fit(X.loc[train]).score(X)
 
     # threshold on validation then measure on test
