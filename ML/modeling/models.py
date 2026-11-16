@@ -32,7 +32,7 @@ class TabularModel:
 class MarkovModel:
     """
     learn which step follow which step, from the seqnuce data from Table 2,
-    order=1 looks at the previous step (shipped to the phone), order=2 at the previous two steps (report only)
+    order=1 looks at the previous step, order=2 at the previous two steps (order 2 is shipped to the phone)
     """
     def __init__(self, order=1):
         self.order = order
@@ -74,9 +74,12 @@ class MarkovModel:
 
     def export(self, path, threshold):
         """save what the phone needs: the surprise of each step pair seen in training,
-        the surprise of a never-seen pair after each step, and the alarm threshold"""
+        the surprise of a never-seen pair after each step, and the alarm threshold.
+        order = how many previous steps make the context: the phone joins them with " > ",
+        starting from START (order 2: "START > START", then "START > step1", ...)"""
 
-        model = {"threshold": threshold,
+        model = {"order": self.order,
+                 "threshold": threshold,
                  "unseen_step": math.log(self.num_steps),     # previous step (events) never seen in training 
                  "unseen_after": {a: math.log(sum(c.values()) + self.num_steps) for a, c in self.counting_next.items()},
                  "pairs": {a: {b: self.surprise(a, b) for b in c} for a, c in self.counting_next.items()}}
