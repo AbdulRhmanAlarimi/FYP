@@ -37,22 +37,35 @@ public class Rasp {
     {
          final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
 
-         com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);   // NEW: on-device ML
-         
+         // On-device Markov: if this step makes the session unusual, also POST ME-ML once.
+         boolean mlAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+         postEvent(seq, eventId, eventType, component, data);
+         if (mlAlarm) {
+             postMlAnomalyAlert();
+         }
+    }
+
+    /** POST one RASP event to the backend (no Markov scoring). */
+    private static void postEvent(
+        final int seq,
+        final String eventId,
+        final String eventType,
+        final String component,
+        final JSONObject data
+    ) {
         new Thread(new Runnable(){ // network is not allowed on main thread
-            @Override 
+            @Override
             public void run(){
                 try{
                     JSONObject event =  new JSONObject();
-                    event.put("seq", seq);                  // NEW
-                    event.put("launch_id", LAUNCH_ID);      // NEW
+                    event.put("seq", seq);
+                    event.put("launch_id", LAUNCH_ID);
                     event.put("event_id",eventId);
                     event.put("event_type", eventType);
                     event.put("timestamp", now());
                     event.put("component", component);
                     event.put("data", data);
 
-                    // connection with server let in lesn
                     HttpURLConnection conn = (HttpURLConnection) new URL(SERVER).openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json");
@@ -66,12 +79,31 @@ public class Rasp {
                     Log.i("RASP", "sent " + eventType + " -> HTTP " + conn.getResponseCode());
                     conn.disconnect();
                 }
-                //Catch
                 catch (Exception e){
                     Log.e("RASP", "send failed "+ e);
                 }
             }
         }).start();
+    }
+
+    /**
+     * Once per unusual session: tell the SIEM the Markov model fired.
+     * Uses postEvent (not send) so ME-ML is not scored again.
+     */
+    private static void postMlAnomalyAlert() {
+        try {
+            JSONObject d = new JSONObject();
+            d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
+            d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
+            d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            d.put("detection_result", "DETECTED");
+            d.put("model", "Markov2");
+            final int seq = SEQ.incrementAndGet();
+            postEvent(seq, "ME-ML", "ML_ANOMALY", "MarkovDetector", d);
+            Log.w("RASP", "posted ML_ANOMALY alert to SIEM");
+        } catch (org.json.JSONException e) {
+            Log.e("RASP", "ML alert payload failed", e);
+        }
     }
 
 

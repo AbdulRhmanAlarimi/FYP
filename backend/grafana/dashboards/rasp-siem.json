@@ -65,9 +65,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "red", "value": 3 }
+              { "color": "#37872D", "value": null },
+              { "color": "#E02F44", "value": 1 }
             ]
           },
           "unit": "short"
@@ -105,9 +104,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 5 }
+              { "color": "#37872D", "value": null },
+              { "color": "#64B5F6", "value": 1 }
             ]
           },
           "unit": "short"
@@ -130,11 +128,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(*)::bigint AS \"Failed logins\"\nFROM events\nWHERE event_id = 'ME-06'\n  AND UPPER(COALESCE(data->>'login_result', '')) IN ('FAILED', 'FAILURE', 'DENIED', 'INVALID')\n  AND $__timeFilter(received_at);",
+          "rawSql": "SELECT COUNT(*)::bigint AS \"Failed logins\"\nFROM alerts\nWHERE $__timeFilter(created_at)\n  AND (\n    title ILIKE '%Failed login%'\n    OR reason ILIKE '%login_result=FAIL%'\n    OR reason ILIKE '%WrongLogin%'\n  )\n  AND (\n    '$detector' = 'All'\n    OR CASE WHEN UPPER(source) = 'ML' THEN 'ML' ELSE 'RULE' END = '$detector'\n  );",
           "refId": "A"
         }
       ],
-      "title": "Failed logins",
+      "title": "Failed logins (RULE)",
       "type": "stat"
     },
     {
@@ -222,7 +220,10 @@
           "color": { "mode": "thresholds" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "text", "value": null }]
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "purple", "value": 1 }
+            ]
           },
           "unit": "short"
         },
@@ -244,11 +245,11 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT COUNT(DISTINCT launch_id)::bigint AS \"App launches\"\nFROM events\nWHERE launch_id <> ''\n  AND $__timeFilter(received_at);",
+          "rawSql": "SELECT COUNT(*)::bigint AS \"ML alerts\"\nFROM alerts\nWHERE UPPER(source) = 'ML'\n  AND $__timeFilter(created_at)\n  AND (\n    '$detector' = 'All'\n    OR CASE WHEN UPPER(source) = 'ML' THEN 'ML' ELSE 'RULE' END = '$detector'\n  );",
           "refId": "A"
         }
       ],
-      "title": "Distinct launches",
+      "title": "ML alerts",
       "type": "stat"
     },
     {
@@ -298,7 +299,24 @@
           "custom": { "hideFrom": { "legend": false, "tooltip": false, "viz": false } },
           "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "critical" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#E02F44", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "high" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#FF9830", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "medium" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#FADE2A", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "low" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#64B5F6", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 9, "w": 6, "x": 12, "y": 4 },
       "id": 8,
@@ -523,10 +541,15 @@
               {
                 "id": "mappings",
                 "value": [
-                  { "type": "value", "options": { "critical": { "color": "red", "index": 0, "text": "critical" } } },
-                  { "type": "value", "options": { "high": { "color": "orange", "index": 1, "text": "high" } } },
-                  { "type": "value", "options": { "medium": { "color": "yellow", "index": 2, "text": "medium" } } },
-                  { "type": "value", "options": { "low": { "color": "blue", "index": 3, "text": "low" } } }
+                  {
+                    "type": "value",
+                    "options": {
+                      "critical": { "color": "#E02F44", "index": 0, "text": "critical" },
+                      "high": { "color": "#FF9830", "index": 1, "text": "high" },
+                      "medium": { "color": "#FADE2A", "index": 2, "text": "medium" },
+                      "low": { "color": "#64B5F6", "index": 3, "text": "low" }
+                    }
+                  }
                 ]
               }
             ]
@@ -598,6 +621,6 @@
   "timezone": "browser",
   "title": "RASP SIEM Overview",
   "uid": "rasp-siem-overview",
-  "version": 2,
+  "version": 4,
   "weekStart": ""
 }

@@ -39,7 +39,7 @@ def receive_event(payload: RaspEvent, db: Session = Depends(get_db)) -> dict[str
                 reason=match.reason,
                 event_type=payload.event_type,
                 event_id=payload.event_id,
-                source="RULE",
+                source=match.source,
             )
         )
 

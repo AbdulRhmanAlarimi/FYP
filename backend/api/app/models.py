@@ -66,3 +66,18 @@ class Alert(Base):
     )
 
     event: Mapped["Event"] = relationship(back_populates="alert")
+
+
+class IntegrityBaseline(Base):
+    """Official APK SHA-256 used by on-device AS09 (singleton row id=1)."""
+
+    __tablename__ = "integrity_baselines"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    trusted_apk_sha256: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )

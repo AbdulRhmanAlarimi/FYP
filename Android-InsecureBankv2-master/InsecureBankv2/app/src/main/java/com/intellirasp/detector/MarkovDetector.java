@@ -27,9 +27,10 @@ public class MarkovDetector {
 
     // Do not raise an alarm before this many steps: the average is too noisy at the start
     private static final int MIN_STEPS = 3;
-    // Same list as RULE_EVENTS in process_raw_files.py: these go to the rules, not to the model
+    // Same list as RULE_EVENTS in process_raw_files.py: these go to the rules, not to the model.
+    // ME-ML is the alert event we post ourselves — never feed it back into scoring.
     private static final Set<String> RULE_EVENTS =
-            new HashSet<String>(Arrays.asList("ME-11", "ME-13", "ME-14", "ME-15"));
+            new HashSet<String>(Arrays.asList("ME-11", "ME-13", "ME-14", "ME-15", "ME-ML"));
 
     private static boolean loaded = false;
     private static double threshold, unseenStep;
@@ -40,6 +41,8 @@ public class MarkovDetector {
     private static double total = 0;
     private static int steps = 0;
     private static boolean alarmed = false;
+    private static double lastScore = 0;
+    private static String lastStep = "";
 
     /** Call once from RaspApp.onCreate(). */
     public static synchronized void init(Context context) {
@@ -102,6 +105,8 @@ public class MarkovDetector {
         prev = step;
 
         double score = total / steps;
+        lastScore = score;
+        lastStep = step;
         Log.d(TAG, step + "  score " + String.format("%.3f", score));
         if (!alarmed && steps >= MIN_STEPS && score > threshold) {
             alarmed = true;
@@ -109,6 +114,21 @@ public class MarkovDetector {
             return true;
         }
         return false;
+    }
+
+    /** Last running average score (for the ME-ML alert payload). */
+    public static synchronized double getLastScore() {
+        return lastScore;
+    }
+
+    /** Alarm threshold loaded from markov_model.json. */
+    public static synchronized double getThreshold() {
+        return threshold;
+    }
+
+    /** Token that triggered the latest score update. */
+    public static synchronized String getLastStep() {
+        return lastStep;
     }
 
     /** Score of the whole session, exactly like MarkovModel.score() (adds the END step). For the parity test. */
@@ -122,5 +142,7 @@ public class MarkovDetector {
         total = 0;
         steps = 0;
         alarmed = false;
+        lastScore = 0;
+        lastStep = "";
     }
 }
