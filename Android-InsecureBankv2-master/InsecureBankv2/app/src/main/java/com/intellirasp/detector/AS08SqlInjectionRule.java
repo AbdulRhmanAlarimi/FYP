@@ -27,6 +27,16 @@ public class AS08SqlInjectionRule {
         Pattern pattern;
     }
 
+    public static class Match {
+        public final String id, name, severity;
+
+        private Match(String id, String name, String severity) {
+            this.id = id;
+            this.name = name;
+            this.severity = severity;
+        }
+    }
+
     private static List<Rule> rules;
 
     private static synchronized List<Rule> loadRules(Context context) {
@@ -57,17 +67,22 @@ public class AS08SqlInjectionRule {
         return rules;
     }
 
-    /** true = injection attempt detected (a rule matched). */
-    public static boolean check(Context context, String input) {
-        if (input == null || input.isEmpty()) return false;
+    /** the first rule that matches the input, or null when nothing matched. */
+    public static Match match(Context context, String input) {
+        if (input == null || input.isEmpty()) return null;
         for (Rule r : loadRules(context)) {
             if (r.pattern.matcher(input).find()) {
                 Log.e(TAG, "ALERT: SQL injection attempt detected! rule=" + r.id
                         + " [" + r.severity + "] " + r.name);
-                return true;
+                return new Match(r.id, r.name, r.severity);
             }
         }
         Log.i(TAG, "No SQL injection pattern matched.");
-        return false;
+        return null;
+    }
+
+    /** true = injection attempt detected (a rule matched). */
+    public static boolean check(Context context, String input) {
+        return match(context, input) != null;
     }
 }
