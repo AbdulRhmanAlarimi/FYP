@@ -23,13 +23,18 @@ public class RaspApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Rasp.startEnvChecks();
+
+        com.intellirasp.detector.MarkovDetector.init(this);   // NEW: load the ML model
+        
+        Rasp.startEnvChecks(this);
         integrityCheck();
         watchClipboard();
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityCreated(Activity a, Bundle b) { onScreenOpened(a); }
             @Override public void onActivityStarted(Activity a) {}
-            @Override public void onActivityResumed(Activity a) {}
+            @Override public void onActivityResumed(Activity a) {
+                Rasp.checkDebugger(a, a.getClass().getSimpleName());
+            }
             @Override public void onActivityPaused(Activity a) {}
             @Override public void onActivityStopped(Activity a) {}
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}

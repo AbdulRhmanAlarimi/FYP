@@ -9,13 +9,23 @@ public class AS07DebuggerRule {
 
     private static final String TAG = "IntelliRASP-AS07";
 
-    public static void check(Context context) {
+    public static boolean isDebuggerAttached() {
+        return Debug.isDebuggerConnected();
+    }
 
-        if (Debug.isDebuggerConnected()) {
+    public static boolean isDebuggable(Context context) {
+        return (context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+    }
+
+    /** true = a debugger is attached (a rule matched). */
+    public static boolean check(Context context) {
+        boolean attached = isDebuggerAttached();
+
+        if (attached) {
             Log.e(TAG, "ALERT: A Debugger is attached!");
             //we need to exit the app and send the alert to the SIEM or grafana المهم نرسل الاليرت و نقفل البرنامج عن اليوسر
 
-        } else if ((context.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+        } else if (isDebuggable(context)) {
             Log.w(TAG, "WARNING: Application is debuggable!");
             // we need to send an alert to the SIEM only no need to terminate هنا التطبيق قابل ان يصير له ديبوج لكن اليوزر م مسوي له ديبوج
 
@@ -23,5 +33,7 @@ public class AS07DebuggerRule {
             Log.i(TAG, "No debugger attached; application is not debuggable.");
 
         }
+
+        return attached;
     }
 }

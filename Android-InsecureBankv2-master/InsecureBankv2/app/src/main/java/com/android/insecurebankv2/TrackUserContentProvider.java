@@ -54,7 +54,7 @@ public class TrackUserContentProvider extends ContentProvider {
 				count = db.delete(TABLE_NAME, selection, selectionArgs);
 
 				reportCaller("DELETE");
-				Rasp.sql(DATABASE_NAME, "DELETE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
+				Rasp.sql(getContext(), DATABASE_NAME, "DELETE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
 
 
 				break;
@@ -82,7 +82,7 @@ public class TrackUserContentProvider extends ContentProvider {
 		long rowID = db.insert(TABLE_NAME, "", values);
 
 		reportCaller("INSERT");
-		Rasp.sql(DATABASE_NAME, "INSERT", TABLE_NAME, null, null, rowID > 0, "TrackUserContentProvider");
+		Rasp.sql(getContext(), DATABASE_NAME, "INSERT", TABLE_NAME, null, null, rowID > 0, "TrackUserContentProvider");
 
 		if (rowID > 0) {
 			Uri _uri = ContentUris.withAppendedId(CONTENT_URI, rowID);
@@ -130,7 +130,7 @@ public class TrackUserContentProvider extends ContentProvider {
 			c = qb.query(db, projection, selection, selectionArgs, null, null, sortOrder);
 			ok = true;
 		} finally {   // runs even if the query crashes, so injected SQL is still reported
-			Rasp.sql(DATABASE_NAME, "SELECT", TABLE_NAME, selection, selectionArgs, ok, "TrackUserContentProvider");
+			Rasp.sql(getContext(), DATABASE_NAME, "SELECT", TABLE_NAME, selection, selectionArgs, ok, "TrackUserContentProvider");
 		}
 
 
@@ -149,7 +149,7 @@ public class TrackUserContentProvider extends ContentProvider {
 				count = db.update(TABLE_NAME, values, selection, selectionArgs);
 
 				reportCaller("UPDATE");
-				Rasp.sql(DATABASE_NAME, "UPDATE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
+				Rasp.sql(getContext(), DATABASE_NAME, "UPDATE", TABLE_NAME, selection, selectionArgs, true, "TrackUserContentProvider");
 
 
 				break;
