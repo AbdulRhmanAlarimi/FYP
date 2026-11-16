@@ -186,7 +186,7 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                     reason=match.reason,
                     event_type=payload.event_type,
                     event_id=payload.event_id,
-                    source="RASP",
+                    source="RULE",
                     created_at=received_at,
                 )
             )

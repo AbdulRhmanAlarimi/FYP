@@ -56,7 +56,8 @@ class Alert(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     event_type: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
     event_id: Mapped[str] = mapped_column(String(32), nullable=False)
-    source: Mapped[str] = mapped_column(String(64), nullable=False, default="RASP")
+    # RULE = rule engine (classify_rasp_event); ML = model pipeline (when wired)
+    source: Mapped[str] = mapped_column(String(64), nullable=False, default="RULE")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
