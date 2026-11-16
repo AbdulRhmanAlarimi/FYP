@@ -1,0 +1,241 @@
+{
+ "threshold": 0.8135542052163476,
+ "unseen_step": 3.713572066704308,
+ "unseen_after": {
+  "START": 6.692083742506628,
+  "ME-09|LoginActivity|ANONYMOUS": 6.980075940561763,
+  "ME-09|DoLogin|ANONYMOUS": 6.846943139585379,
+  "ME-06": 6.846943139585379,
+  "ME-10|/login": 6.846943139585379,
+  "ME-06|SUCCESS": 6.71174039505618,
+  "ME-05": 6.71174039505618,
+  "ME-01": 7.3796321526095525,
+  "ME-09|TrackUserContentProvider|AUTHENTICATED": 6.71174039505618,
+  "ME-07|INSERT|PARAMETERIZED": 6.71174039505618,
+  "ME-02": 6.71174039505618,
+  "ME-09|PostLogin|AUTHENTICATED": 6.71174039505618,
+  "ME-09|BeneficiaryActivity|AUTHENTICATED": 6.0867747269123065,
+  "ME-10|/getbeneficiaries": 6.455198563340122,
+  "ME-10|/addbeneficiary": 5.4680601411351315,
+  "ME-09|DoTransfer|AUTHENTICATED": 5.541263545158426,
+  "ME-10|/dotransfer": 5.480638923341991,
+  "ME-03": 5.697093486505405,
+  "ME-06|FAILURE": 5.075173815233827,
+  "ME-09|WrongLogin|ANONYMOUS": 5.075173815233827,
+  "ME-09|AccountDetailsActivity|AUTHENTICATED": 6.418364935936212,
+  "ME-10|/getaccountdetails": 7.077498053569231,
+  "ME-09|ProfileActivity|AUTHENTICATED": 4.969813299576001,
+  "ME-10|/getprofile": 5.476463551931511,
+  "ME-10|/updateprofile": 4.912654885736052,
+  "ME-09|BillPaymentActivity|AUTHENTICATED": 5.220355825078324,
+  "ME-10|/getbillcategories": 5.220355825078324,
+  "ME-10|/getmyaccounts": 6.315358001522335,
+  "ME-10|/getbillhistory": 5.762051382780177,
+  "ME-10|/paybill": 5.159055299214529,
+  "ME-09|TransactionHistoryActivity|AUTHENTICATED": 6.1675164908883415,
+  "ME-10|/gettransactions": 7.155396301896734,
+  "ME-09|DepositActivity|AUTHENTICATED": 5.442417710521793,
+  "ME-10|/deposit": 5.389071729816501,
+  "ME-09|ViewStatement|AUTHENTICATED": 4.59511985013459,
+  "ME-08": 4.59511985013459,
+  "ME-09|SignUpActivity|ANONYMOUS": 5.1647859739235145,
+  "ME-10|/signup": 5.1647859739235145,
+  "ME-09|ChangePassword|AUTHENTICATED": 4.04305126783455,
+  "ME-10|/changepassword": 4.04305126783455,
+  "ME-04": 4.442651256490317
+ },
+ "pairs": {
+  "START": {
+   "ME-09|LoginActivity|ANONYMOUS": 0.05090157276603702
+  },
+  "ME-09|LoginActivity|ANONYMOUS": {
+   "ME-09|DoLogin|ANONYMOUS": 0.1799058722595636,
+   "ME-09|SignUpActivity|ANONYMOUS": 2.0748011621233338,
+   "ME-04": 5.593781579441872
+  },
+  "ME-09|DoLogin|ANONYMOUS": {
+   "ME-06": 0.04343788197704177
+  },
+  "ME-06": {
+   "ME-10|/login": 0.04343788197704177
+  },
+  "ME-10|/login": {
+   "ME-06|SUCCESS": 0.1850883990400686,
+   "ME-06|FAILURE": 2.0594513968033334
+  },
+  "ME-06|SUCCESS": {
+   "ME-05": 0.04988565451086889
+  },
+  "ME-05": {
+   "ME-01": 0.04988565451086889
+  },
+  "ME-01": {
+   "ME-01": 0.7177774120642418,
+   "ME-09|TrackUserContentProvider|AUTHENTICATED": 0.7177774120642418
+  },
+  "ME-09|TrackUserContentProvider|AUTHENTICATED": {
+   "ME-07|INSERT|PARAMETERIZED": 0.04988565451086889
+  },
+  "ME-07|INSERT|PARAMETERIZED": {
+   "ME-02": 0.04988565451086889
+  },
+  "ME-02": {
+   "ME-09|PostLogin|AUTHENTICATED": 0.04988565451086889
+  },
+  "ME-09|PostLogin|AUTHENTICATED": {
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 2.0483013009441127,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 1.1059383287601827,
+   "ME-09|ProfileActivity|AUTHENTICATED": 2.6342029511504603,
+   "ME-09|DepositActivity|AUTHENTICATED": 2.2809235962128662,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 1.630336030071717,
+   "END": 3.1282214566000697,
+   "ME-09|BillPaymentActivity|AUTHENTICATED": 2.507047775665214,
+   "ME-04": 6.018593214496234,
+   "ME-09|DoTransfer|AUTHENTICATED": 5.6131281063880705
+  },
+  "ME-09|BeneficiaryActivity|AUTHENTICATED": {
+   "ME-10|/getbeneficiaries": 0.0953101798043249
+  },
+  "ME-10|/getbeneficiaries": {
+   "ME-10|/addbeneficiary": 1.177083904109605,
+   "ME-09|DoTransfer|AUTHENTICATED": 1.2402628057311365,
+   "ME-10|/dotransfer": 1.1719948346021336,
+   "END": 4.375757021660286,
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 5.0689042022202315,
+   "ME-04": 4.845760650906022,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 4.375757021660286
+  },
+  "ME-10|/addbeneficiary": {
+   "ME-10|/getbeneficiaries": 0.18994548190461397,
+   "ME-09|DoTransfer|AUTHENTICATED": 4.774912960575186
+  },
+  "ME-09|DoTransfer|AUTHENTICATED": {
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 0.24294617861038947,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 4.848116364598481,
+   "ME-04": 4.848116364598481,
+   "END": 3.7495040759303713,
+   "ME-10|/getbeneficiaries": 4.848116364598481,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 4.154969184038536,
+   "ME-09|ViewStatement|AUTHENTICATED": 3.9318256327243257
+  },
+  "ME-10|/dotransfer": {
+   "ME-03": 0.1823215567939546
+  },
+  "ME-03": {
+   "END": 1.569959101460313,
+   "ME-08": 1.619556042599685,
+   "ME-09|DepositActivity|AUTHENTICATED": 2.9245047642656234,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 1.846945884795346,
+   "ME-09|ViewStatement|AUTHENTICATED": 2.9890432854031945,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 1.6897603012729334,
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 3.3945083935113587
+  },
+  "ME-06|FAILURE": {
+   "ME-09|WrongLogin|ANONYMOUS": 0.2876820724517809
+  },
+  "ME-09|WrongLogin|ANONYMOUS": {
+   "ME-09|LoginActivity|ANONYMOUS": 0.2876820724517809
+  },
+  "ME-09|AccountDetailsActivity|AUTHENTICATED": {
+   "ME-10|/getaccountdetails": 0.06747921922147186
+  },
+  "ME-10|/getaccountdetails": {
+   "ME-10|/getaccountdetails": 0.726612336854492,
+   "END": 1.9416996165189697,
+   "ME-09|BillPaymentActivity|AUTHENTICATED": 3.522149992079818,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 2.2900063107871858,
+   "ME-09|ProfileActivity|AUTHENTICATED": 3.2488566570801365,
+   "ME-09|ViewStatement|AUTHENTICATED": 3.3639259868649236,
+   "ME-09|ChangePassword|AUTHENTICATED": 4.592591403781231,
+   "ME-09|DepositActivity|AUTHENTICATED": 2.5448985604159757,
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 3.227350451859173,
+   "ME-09|DoTransfer|AUTHENTICATED": 4.3694478524670215,
+   "ME-04": 5.978885764901122
+  },
+  "ME-09|ProfileActivity|AUTHENTICATED": {
+   "ME-10|/getprofile": 0.325422400434628
+  },
+  "ME-10|/getprofile": {
+   "ME-10|/updateprofile": 0.9121153604636745,
+   "END": 1.082014397259072,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 2.5320245727650703,
+   "ME-09|ChangePassword|AUTHENTICATED": 3.6847040827034556
+  },
+  "ME-10|/updateprofile": {
+   "ME-10|/getprofile": 0.3483066942682157
+  },
+  "ME-09|BillPaymentActivity|AUTHENTICATED": {
+   "ME-10|/getbillcategories": 0.24362208265775043
+  },
+  "ME-10|/getbillcategories": {
+   "ME-10|/getmyaccounts": 0.24362208265775043
+  },
+  "ME-10|/getmyaccounts": {
+   "ME-10|/getbillhistory": 1.3386242591017603,
+   "ME-10|/gettransactions": 0.40456135748180755
+  },
+  "ME-10|/getbillhistory": {
+   "ME-10|/paybill": 0.871702254558423,
+   "END": 1.2847145683019703,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 2.206703321290763,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 2.583997552432231,
+   "ME-04": 5.0689042022202315
+  },
+  "ME-10|/paybill": {
+   "ME-10|/getbillhistory": 0.2612154992636177
+  },
+  "ME-09|TransactionHistoryActivity|AUTHENTICATED": {
+   "ME-10|/gettransactions": 0.08758329579275109
+  },
+  "ME-10|/gettransactions": {
+   "ME-10|/gettransactions": 1.0754631068011442,
+   "ME-09|BillPaymentActivity|AUTHENTICATED": 3.371206667978473,
+   "ME-10|/deposit": 1.973612751604649,
+   "END": 1.4855153789162145,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 1.9459101490553135,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 3.0778588579910147,
+   "ME-04": 5.363636832668679,
+   "ME-09|DoTransfer|AUTHENTICATED": 4.447346100794524,
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 3.5444783892525096
+  },
+  "ME-09|DepositActivity|AUTHENTICATED": {
+   "ME-10|/getmyaccounts": 0.19014428247516368
+  },
+  "ME-10|/deposit": {
+   "ME-10|/getmyaccounts": 0.2016859239757458
+  },
+  "ME-09|ViewStatement|AUTHENTICATED": {
+   "ME-03": 0.5175824062288705
+  },
+  "ME-08": {
+   "END": 1.1939224684724346,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 1.4596256342054403,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 2.515678308454754
+  },
+  "ME-09|SignUpActivity|ANONYMOUS": {
+   "ME-10|/signup": 0.25951119548508456
+  },
+  "ME-10|/signup": {
+   "ME-09|LoginActivity|ANONYMOUS": 0.25951119548508456
+  },
+  "ME-09|ChangePassword|AUTHENTICATED": {
+   "ME-10|/changepassword": 1.209837923778334
+  },
+  "ME-10|/changepassword": {
+   "ME-09|LoginActivity|ANONYMOUS": 1.209837923778334
+  },
+  "ME-04": {
+   "END": 3.056356895370426,
+   "ME-04": 1.1104467463151126,
+   "ME-10|/deposit": 3.7495040759303713,
+   "ME-10|/addbeneficiary": 3.7495040759303713,
+   "ME-09|BeneficiaryActivity|AUTHENTICATED": 3.7495040759303713,
+   "ME-10|/dotransfer": 3.056356895370426,
+   "ME-09|TransactionHistoryActivity|AUTHENTICATED": 3.7495040759303713,
+   "ME-09|DoLogin|ANONYMOUS": 3.056356895370426,
+   "ME-09|BillPaymentActivity|AUTHENTICATED": 3.7495040759303713,
+   "ME-10|/paybill": 3.7495040759303713,
+   "ME-09|AccountDetailsActivity|AUTHENTICATED": 3.3440389678222067
+  }
+ }
+}

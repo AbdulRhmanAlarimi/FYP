@@ -33,6 +33,9 @@ public class Rasp {
     )
     {
          final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
+
+         com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);   // NEW: on-device ML
+         
         new Thread(new Runnable(){ // network is not allowed on main thread
             @Override 
             public void run(){
