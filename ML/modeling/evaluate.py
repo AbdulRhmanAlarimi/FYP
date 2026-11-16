@@ -100,6 +100,8 @@ def main():
     markov = MarkovModel().fit({s: sequences[s] for s in train})
     scores["Markov"] = markov.score(sequences)
     train_sequences = {s: sequences[s] for s in train}
+    markov2 = MarkovModel(order=2).fit(train_sequences)       # the model exported to the phone
+    scores["Markov2"] = markov2.score(sequences)
     scores["LSTM"] = LSTMModel().fit(train_sequences).score(sequences)        # report only
     scores["ZScoreBaseline"] = ZScoreBaseline().fit(X.loc[train]).score(X)
 
@@ -137,7 +139,7 @@ def main():
     scores.join(labels[["label", "attack_class"]]).to_csv(os.path.join(RESULTS_DIR, "scores.csv"))
     save_charts(scores.loc[test], y, results, per_class)
 
-    markov.export(os.path.join(RESULTS_DIR, "markov_model.json"), thresholds["Markov"])
+    markov2.export(os.path.join(RESULTS_DIR, "markov_model.json"), thresholds["Markov2"])
 
     print(f"train {len(train)}  val {len(val)}  test {len(test)}   "
           f"{X.shape[1]} features, timing {'on' if USE_TIMING else 'off'}\n")
