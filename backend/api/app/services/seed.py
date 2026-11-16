@@ -127,6 +127,10 @@ def _build_demo_events(now: datetime) -> list[RaspEvent]:
          {"url_path": "/dotransfer", "http_method": "POST", "connection_result": "HTTP_200", "destination_port": "8888"}, 19, launch_c),
         (2, "ME-09", "ANDROID_COMPONENT_INVOCATION", "PostLogin",
          {"auth_state": "AUTHENTICATED"}, 20, launch_c),
+        # On-device Markov anomaly (same shape the phone posts when score > threshold)
+        (1, "ME-ML", "ML_ANOMALY", "MarkovDetector",
+         {"ml_score": 0.91, "threshold": 0.72, "trigger_step": "ME-10|/dotransfer",
+          "detection_result": "DETECTED", "model": "Markov2"}, 21, launch_c),
     ]
 
     events: list[RaspEvent] = []
@@ -186,7 +190,7 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                     reason=match.reason,
                     event_type=payload.event_type,
                     event_id=payload.event_id,
-                    source="RASP",
+                    source=match.source,
                     created_at=received_at,
                 )
             )

@@ -19,3 +19,12 @@ class RaspEvent(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+
+class TrustedHashResponse(BaseModel):
+    sha256: str
+    algorithm: str = "SHA-256"
+
+
+class TrustedHashUpdate(BaseModel):
+    sha256: str = Field(..., min_length=64, max_length=64)
