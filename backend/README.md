@@ -19,7 +19,10 @@ Requirements: Docker with Compose.
 | Health | http://127.0.0.1:8000/health |
 | Grafana | http://127.0.0.1:3000 (`admin` / `admin`) |
 
-`start.sh` builds containers, waits for health, and POSTs `/api/seed` so charts have demo data immediately.
+`start.sh` builds containers, waits for health, and force-loads sample RASP events/alerts so Grafana charts are never empty.
+
+The API also auto-seeds on startup whenever the `events` table is empty.
+
 
 ## Android emulator
 

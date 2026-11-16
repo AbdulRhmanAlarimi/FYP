@@ -8,12 +8,15 @@ from fastapi import FastAPI
 
 from app.db import init_db
 from app.routers import events, health, seed
+from app.services.seed import ensure_sample_data
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    ensure_sample_data()
     yield
+
 
 
 app = FastAPI(

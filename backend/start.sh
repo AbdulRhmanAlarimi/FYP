@@ -36,9 +36,16 @@ if ! curl -fsS "http://127.0.0.1:8000/health" >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> Seeding demo RASP events (skipped if data already exists)..."
-curl -fsS -X POST "http://127.0.0.1:8000/api/seed" || true
-echo
+echo "==> Loading sample RASP events into Postgres (force refresh)..."
+SEED_RESULT="$(curl -fsS -X POST "http://127.0.0.1:8000/api/seed?force=true")"
+echo "$SEED_RESULT"
+EVENT_COUNT="$(curl -fsS "http://127.0.0.1:8000/events" | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)"
+echo "==> Events now in API: ${EVENT_COUNT}"
+if [[ "${EVENT_COUNT}" -lt 1 ]]; then
+  echo "error: sample data was not loaded" >&2
+  exit 1
+fi
+
 
 cat <<EOF
 
