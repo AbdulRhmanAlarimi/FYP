@@ -23,6 +23,9 @@ public class RaspApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        com.intellirasp.detector.MarkovDetector.init(this);   // NEW: load the ML model
+        
         Rasp.startEnvChecks();
         integrityCheck();
         watchClipboard();
