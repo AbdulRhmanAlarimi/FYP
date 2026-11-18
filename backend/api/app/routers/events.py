@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -10,12 +10,17 @@ from app.db import get_db
 from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
+from app.services.correlate_v2 import correlate_event_v2_background
 
 router = APIRouter(tags=["events"])
 
 
 @router.post("/events")
-def receive_event(payload: RaspEvent, db: Session = Depends(get_db)) -> dict[str, str]:
+def receive_event(
+    payload: RaspEvent,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
     """Persist a RASP event and create an alert when a risk signal is present."""
     row = Event(
         event_id=payload.event_id,
@@ -44,6 +49,8 @@ def receive_event(payload: RaspEvent, db: Session = Depends(get_db)) -> dict[str
         )
 
     db.commit()
+    # v2 stateful correlation runs asynchronously to keep ingest latency low.
+    background_tasks.add_task(correlate_event_v2_background, row.id)
     return {"action": "allow"}
 
 

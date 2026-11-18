@@ -121,4 +121,15 @@ public class AS09IntegrityRule {
     public static boolean matches(Context context) {
         return check(context).passed;
     }
+
+    // v2 rule: explicit v2 integrity verification entrypoints (backend-anchored baseline).
+    public static Result check_v2(Context context) {
+        Result result = check(context);
+        Log.i(TAG, "check_v2 result=" + result.passed + " detail=" + result.detail);
+        return result;
+    }
+
+    public static boolean matches_v2(Context context) {
+        return check_v2(context).passed;
+    }
 }

@@ -36,4 +36,25 @@ public class AS07DebuggerRule {
 
         return attached;
     }
+
+    // v2 rule: stricter runtime-debug risk (attached debugger OR debuggable build).
+    public static boolean isDebuggerAttached_v2() {
+        return isDebuggerAttached();
+    }
+
+    public static boolean isDebuggable_v2(Context context) {
+        return isDebuggable(context);
+    }
+
+    public static boolean check_v2(Context context) {
+        boolean attached = isDebuggerAttached();
+        boolean debuggable = isDebuggable(context);
+        if (attached || debuggable) {
+            Log.e(TAG, "ALERT_v2: debugger/runtime debug risk attached=" + attached
+                    + " debuggable=" + debuggable);
+            return true;
+        }
+        Log.i(TAG, "check_v2: no debugger risk detected.");
+        return false;
+    }
 }

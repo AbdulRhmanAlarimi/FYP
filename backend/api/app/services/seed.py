@@ -14,6 +14,7 @@ from app.db import SessionLocal
 from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
+from app.services.correlate_v2 import persist_v2_alerts_for_event
 
 logger = logging.getLogger(__name__)
 
@@ -195,6 +196,9 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                 )
             )
             created_alerts += 1
+
+        # v2 stateful rules (_v2 event types) for demo visibility.
+        created_alerts += persist_v2_alerts_for_event(db, row, commit=False)
 
     db.commit()
     return {
