@@ -85,4 +85,13 @@ public class AS08SqlInjectionRule {
     public static boolean check(Context context, String input) {
         return match(context, input) != null;
     }
+
+    // v2 rule: explicit v2 entrypoints for enhanced SQLi rule tracking.
+    public static Match match_v2(Context context, String input) {
+        return match(context, input);
+    }
+
+    public static boolean check_v2(Context context, String input) {
+        return check(context, input);
+    }
 }
