@@ -9,7 +9,8 @@ RAW_DIR = os.path.join(CURR_DIR, "datasets", "raw")
 OUTPUT_DIR = os.path.join(CURR_DIR, "datasets")
 
 # Rule events that are not usefull for the ML models, (debugger, integrity, root, emulator)
-RULE_EVENTS = {"ME-11", "ME-13", "ME-14", "ME-15"}
+# + ME-ML: the in-app ML alert, so the ML never reads its own alarm
+RULE_EVENTS = {"ME-11", "ME-13", "ME-14", "ME-15", "ME-ML"}
 ML_EVENTS = [f"ME-{i:02d}" for i in range(1, 16) if f"ME-{i:02d}" not in RULE_EVENTS]
 
 # every backend endpoint the app calls
@@ -57,7 +58,9 @@ def load_events(raw_dir):
     fields = pd.json_normalize(event_df["data"].tolist())  
     event_df = pd.concat([event_df.drop(columns="data"), fields], axis=1)
     event_df["t"] = pd.to_datetime(event_df["timestamp"], errors="coerce", utc=True, format="ISO8601")
-    return drop_leftovers(order_events(event_df))
+    events = drop_leftovers(order_events(event_df))
+    rule_only = (events.event_id == "ME-07") & (events.component == "TransactionCacheDb")   # Qais's AS08 search check, for the rules only
+    return events[~rule_only].reset_index(drop=True)
 
 def order_events(event_df):
     """sort events by their session lunch, then by seq (hook own counter)"""
@@ -114,7 +117,7 @@ def build_tabular(events):
     feat["n_sensitive_logs"] = count(ev, ev.sensitivity_classification == "SENSITIVE")
 
     #injection signs
-    feat["n_suspicious_input"] = count(ev, ev.validation_result == "SUSPICIOUS")
+    feat["n_suspicious_input"] = count(ev, (ev.event_id == "ME-06") & (ev.validation_result == "SUSPICIOUS"))  # not AS08's flag on ME-07
     feat["n_not_parameterized"] = count(ev, sql & (ev.parameterization_status == "NOT_PARAMETERIZED"))
     feat["n_query_shapes"] = ev[sql].groupby("session_id")["query_structure"].nunique()
 

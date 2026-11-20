@@ -10,7 +10,8 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")    # save charts to files, no window
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_auc_score, average_precision_score, roc_curve
+from sklearn.metrics import (roc_auc_score, average_precision_score, roc_curve,
+                             recall_score, precision_score, f1_score)
 
 # Python only finds modules in the folders listed in sys.path.
 # Running "python modeling/evaluate.py" lists only modeling/, but
@@ -28,22 +29,27 @@ USE_TIMING = False     # execlude the timing feature
 QUANTILE = 0.99         # alarm threshold
 
 
+NEW_DATA_FROM = pd.Timestamp("2026-11-19", tz="UTC")   # the day the new benign collection started
+
 def temporal_split(labels, train=0.5, val=0.2):
     """
-    split data into train, valdiation, test splits,
-    oldest benign sessions train, the next ones validate, the newest test, attacks are always test
+    split data into train, valdiation, test splits, attacks are always test.
+    old and new benign data are each split by time (oldest train, next validate, newest test),
+    so the new kinds of sessions also reach training
     """
-
+    tr, va, te = [], [], []
     benign = labels[labels.label == "benign"].sort_values("started_at")
-    a, b = int(len(benign) * train), int(len(benign) * (train + val))
 
-    test = list(benign.index[b:]) + list(labels[labels.label != "benign"].index)
-    return list(benign.index[:a]), list(benign.index[a:b]), test
+    for part in [benign[benign.started_at < NEW_DATA_FROM], benign[benign.started_at >= NEW_DATA_FROM]]:
+        a, b = int(len(part) * train), int(len(part) * (train + val))
+        tr += list(part.index[:a]); va += list(part.index[a:b]); te += list(part.index[b:])
+
+    return tr, va, te + list(labels[labels.label != "benign"].index)
 
 
 def save_charts(scores, y, results, per_class):
-    """three basic charts: % of attacks detected per model, ROC curve of each model,
-    and % of each attack class detected"""
+    """four basic charts: % of attacks detected per model, recall/precision/F1 per model,
+    ROC curve of each model, and % of each attack class detected"""
 
     # 0. bar chart: % of all attacks detected at the chosen threshold (false alarms written next to each bar)
     fig, ax = plt.subplots(figsize=(7, 3.5))
@@ -53,6 +59,15 @@ def save_charts(scores, y, results, per_class):
                 f"{detected}  (false alarms {fpr}%)", va="center", fontsize=8)
     ax.set(xlim=(0, 100), xlabel="attacks detected (%)", title="Attacks detected per model (test set)")
     fig.savefig(os.path.join(RESULTS_DIR, "detection_per_model.png"), dpi=150, bbox_inches="tight")
+
+    # 0b. recall, precision and F1 side by side for each model (F1 value written on top)
+    metrics = results[["recall_%", "precision_%", "F1_%"]]
+    ax = metrics.plot.bar(figsize=(9, 4), width=0.8, rot=0, color=["tab:blue", "tab:orange", "tab:green"])
+    for bar, f1 in zip(ax.containers[2], metrics["F1_%"]):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1, f"{f1:.0f}", ha="center", fontsize=8)
+    ax.set(ylim=(0, 105), ylabel="%", xlabel="", title="Recall, precision and F1 per model (test set)")
+    ax.legend(["recall", "precision", "F1"], loc="upper left", ncol=3, frameon=False)
+    ax.figure.savefig(os.path.join(RESULTS_DIR, "scores_per_model.png"), dpi=150, bbox_inches="tight")
 
     # 1. ROC: how well each model's score ranks attacks above benign sessions
     fig, ax = plt.subplots(figsize=(6, 5))
@@ -119,7 +134,10 @@ def main():
                "false_alarms": f"{alarms.loc[benign_test, name].sum()}/{len(benign_test)}", # false alarm, beign data in test flagged
                "FPR_%": round(100 * alarms.loc[benign_test, name].mean(), 1),
                "detected": f"{alarms.loc[attacks.index, name].sum()}/{len(attacks)}",       # attacks in test flagged
-               "recall_%": round(100 * alarms.loc[attacks.index, name].mean(), 1),
+               # recall: attacks caught, precision: alarms that were attacks (depends on the attack/benign ratio of the test set)
+               "recall_%": round(100 * recall_score(y, alarms.loc[test, name]), 1),
+               "precision_%": round(100 * precision_score(y, alarms.loc[test, name], zero_division=0), 1),
+               "F1_%": round(100 * f1_score(y, alarms.loc[test, name], zero_division=0), 1),
                # threshold-free: how well the score ranks attacks above benign (1.0 perfect, 0.5 random)
                "ROC_AUC": round(roc_auc_score(y, scores.loc[test, name]), 3),
                "PR_AUC": round(average_precision_score(y, scores.loc[test, name]), 3)}
