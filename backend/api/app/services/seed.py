@@ -14,8 +14,10 @@ from app.db import SessionLocal
 from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
+from app.services.splunk import send_to_splunk, splunk_enabled
 
 logger = logging.getLogger(__name__)
+
 
 
 def _iso(dt: datetime) -> str:
@@ -149,7 +151,13 @@ def _build_demo_events(now: datetime) -> list[RaspEvent]:
 def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
     existing = db.scalar(select(func.count()).select_from(Event)) or 0
     if existing > 0 and not force:
-        return {"events_created": 0, "alerts_created": 0, "skipped": int(existing)}
+        return {
+            "events_created": 0,
+            "alerts_created": 0,
+            "splunk_forwarded": 0,
+            "skipped": int(existing),
+        }
+
 
     if force:
         db.execute(delete(Alert))
@@ -159,6 +167,8 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
     now = datetime.now(timezone.utc)
     created_events = 0
     created_alerts = 0
+    splunk_forwarded = 0
+    hec_on = splunk_enabled()
 
     for payload in _build_demo_events(now):
         received_at = datetime.fromisoformat(payload.timestamp.replace("Z", "+00:00"))
@@ -176,6 +186,7 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
         db.flush()
         created_events += 1
 
+        alert_payload = None
         match = classify_rasp_event(payload)
         if match is not None:
             db.add(
@@ -191,13 +202,24 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                 )
             )
             created_alerts += 1
+            alert_payload = {
+                "severity": match.severity,
+                "title": match.title,
+                "reason": match.reason,
+                "source": "RASP",
+            }
+
+        if hec_on and send_to_splunk(payload, alert=alert_payload):
+            splunk_forwarded += 1
 
     db.commit()
     return {
         "events_created": created_events,
         "alerts_created": created_alerts,
+        "splunk_forwarded": splunk_forwarded,
         "skipped": 0,
     }
+
 
 
 def ensure_sample_data() -> dict[str, int]:

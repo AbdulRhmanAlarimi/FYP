@@ -145,8 +145,18 @@ if [[ "${EVENT_COUNT}" -lt 1 ]]; then
   exit 1
 fi
 
+if [[ -x "$ROOT/scripts/smoke_test.sh" ]]; then
+  echo "==> Running smoke tests..."
+  if [[ "$USE_SPLUNK" -eq 1 ]]; then
+    CHECK_SPLUNK=1 "$ROOT/scripts/smoke_test.sh"
+  else
+    CHECK_SPLUNK=0 "$ROOT/scripts/smoke_test.sh"
+  fi
+fi
+
 echo
 echo "RASP SIEM stack is up (mode: ${MODE})."
+
 echo
 echo "  API docs:   http://127.0.0.1:8000/docs"
 echo "  Health:     http://127.0.0.1:8000/health"

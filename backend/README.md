@@ -74,7 +74,8 @@ Anonymous Viewer access is enabled for local demos.
 
 ## Splunk
 
-When you start with `splunk` or `both`, the API forwards each live webhook event to Splunk **HEC**.
+When you start with `splunk` or `both`, the API forwards each live webhook event **and** seeded demo events to Splunk **HEC**.
+
 
 | Setting | Value |
 |---------|-------|
@@ -107,6 +108,17 @@ backend/
   grafana/              # provisioning + dashboard JSON
   splunk/               # default.yml (HEC + rasp index)
 ```
+
+## Smoke test
+
+After the stack is up:
+
+```bash
+cd backend
+./scripts/smoke_test.sh
+```
+
+Checks API health, webhook ingest, event listing, and (when HEC is configured) Splunk HEC health + a direct event post. `start.sh` runs this automatically.
 
 ## Stop
 
