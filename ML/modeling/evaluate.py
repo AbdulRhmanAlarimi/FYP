@@ -28,6 +28,15 @@ TIMING = ["duration_s", "mean_gap_s", "std_gap_s"]
 USE_TIMING = False     # execlude the timing feature
 QUANTILE = 0.99         # alarm threshold
 
+SMOOTHING = [0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0]   # Markov smoothing values to try
+
+
+def tuned_markov(order, train_sequences, val_sequences):
+    """fit a Markov model with the smoothing that best predicts NORMAL validation sessions
+    (lowest average surprise) - attacks are never used to choose it"""
+    best = min(SMOOTHING, key=lambda k: MarkovModel(order, k).fit(train_sequences).score(val_sequences).mean())
+    return MarkovModel(order, best).fit(train_sequences)
+
 
 NEW_DATA_FROM = pd.Timestamp("2026-11-19", tz="UTC")   # the day the new benign collection started
 
@@ -62,7 +71,7 @@ def save_charts(scores, y, results, per_class):
 
     # 0b. recall, precision and F1 side by side for each model (F1 value written on top)
     metrics = results[["recall_%", "precision_%", "F1_%"]]
-    ax = metrics.plot.bar(figsize=(9, 4), width=0.8, rot=0, color=["tab:blue", "tab:orange", "tab:green"])
+    ax = metrics.plot.bar(figsize=(11, 4), width=0.8, rot=0, color=["tab:blue", "tab:orange", "tab:green"])
     for bar, f1 in zip(ax.containers[2], metrics["F1_%"]):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 1, f"{f1:.0f}", ha="center", fontsize=8)
     ax.set(ylim=(0, 105), ylabel="%", xlabel="", title="Recall, precision and F1 per model (test set)")
@@ -109,16 +118,22 @@ def main():
     # train on benign-train + score each session
     scores = pd.DataFrame(index=X.index)
 
-    for name in ["ECOD", "IForest", "AutoEncoder"]:
+    for name in ["ECOD", "AutoEncoder"]:
         scores[name] = TabularModel(name).fit(X.loc[train]).score(X)
 
-    markov = MarkovModel().fit({s: sequences[s] for s in train})
-    scores["Markov"] = markov.score(sequences)
     train_sequences = {s: sequences[s] for s in train}
-    markov2 = MarkovModel(order=2).fit(train_sequences)       # the model exported to the phone
+    val_sequences = {s: sequences[s] for s in val}              # normal sessions only
+    markov = tuned_markov(1, train_sequences, val_sequences)
+    scores["Markov"] = markov.score(sequences)
+    markov2 = tuned_markov(2, train_sequences, val_sequences)   # the model exported to the phone
     scores["Markov2"] = markov2.score(sequences)
     scores["LSTM"] = LSTMModel().fit(train_sequences).score(sequences)        # report only
     scores["ZScoreBaseline"] = ZScoreBaseline().fit(X.loc[train]).score(X)
+
+    # hybrid: alarm when the steps (Markov2) OR the counts (ZScore) are unusual.
+    # each score is divided by its 99% value on training sessions so both are on the same scale, then take the larger
+    limit = lambda name: scores[name] / scores.loc[train, name].quantile(QUANTILE)
+    scores["Markov2+ZScore"] = pd.concat([limit("Markov2"), limit("ZScoreBaseline")], axis=1).max(axis=1)
 
     # threshold on validation then measure on test
     thresholds = scores.loc[val].quantile(QUANTILE)   # one threshold per model
@@ -160,7 +175,8 @@ def main():
     markov2.export(os.path.join(RESULTS_DIR, "markov_model.json"), thresholds["Markov2"])
 
     print(f"train {len(train)}  val {len(val)}  test {len(test)}   "
-          f"{X.shape[1]} features, timing {'on' if USE_TIMING else 'off'}\n")
+          f"{X.shape[1]} features, timing {'on' if USE_TIMING else 'off'}, "
+          f"Markov smoothing {markov.smoothing} (order 1) / {markov2.smoothing} (order 2)\n")
     print(results.drop(columns=per_class.columns.map(lambda c: c + "_detected_%")).to_string(), "\n")
     print("Detection rate per attack class (%):")
     print(per_class.to_string())
