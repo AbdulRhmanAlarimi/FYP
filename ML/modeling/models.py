@@ -6,17 +6,15 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 from sklearn.preprocessing import StandardScaler
 from pyod.models.ecod import ECOD
-from pyod.models.iforest import IForest
 from pyod.models.auto_encoder import AutoEncoder
 
 
 # -------------------- Models -----------------------------
 class TabularModel:
-    """ECOD, IsolationForest, or AutoEncoder, trained on Table 1 of being data"""
+    """ECOD or AutoEncoder, trained on Table 1 of being data"""
 
     def __init__(self, model_name):
         models = {"ECOD": lambda: ECOD(),
-                  "IForest": lambda: IForest(random_state=0),
                   "AutoEncoder": lambda: AutoEncoder(random_state=0, preprocessing=False, verbose=0)}
         self.model = models[model_name]()
 
@@ -33,9 +31,11 @@ class MarkovModel:
     """
     learn which step follow which step, from the seqnuce data from Table 2,
     order=1 looks at the previous step, order=2 at the previous two steps (order 2 is shipped to the phone)
+    smoothing = the small count every never-seen step gets (1 = add-one); tuned on normal validation data
     """
-    def __init__(self, order=1):
+    def __init__(self, order=1, smoothing=1.0):
         self.order = order
+        self.smoothing = smoothing
 
     def pairs(self, sequence):
         """(previous step(s), next step) for every step, with START before and END after
@@ -56,7 +56,8 @@ class MarkovModel:
 
     def surprise(self, a, b):
         seen = self.counting_next.get(a, Counter()) # what seen after a, if a is new then counter is empty
-        probability = -math.log((seen[b] + 1) / (sum(seen.values()) + self.num_steps))
+        k = self.smoothing
+        probability = -math.log((seen[b] + k) / (sum(seen.values()) + k * self.num_steps))
         return probability
 
     def score(self, sequences):
@@ -78,16 +79,18 @@ class MarkovModel:
         order = how many previous steps make the context: the phone joins them with " > ",
         starting from START (order 2: "START > START", then "START > step1", ...)"""
 
+        k = self.smoothing
         model = {"order": self.order,
+                 "smoothing": k,
                  "threshold": threshold,
-                 "unseen_step": math.log(self.num_steps),     # previous step (events) never seen in training 
-                 "unseen_after": {a: math.log(sum(c.values()) + self.num_steps) for a, c in self.counting_next.items()},
+                 "unseen_step": math.log(self.num_steps),     # previous step (events) never seen in training
+                 "unseen_after": {a: math.log((sum(c.values()) + k * self.num_steps) / k) for a, c in self.counting_next.items()},
                  "pairs": {a: {b: self.surprise(a, b) for b in c} for a, c in self.counting_next.items()}}
         
         with open(path, "w") as f:
             json.dump(model, f, indent=1)
 
-# ------------- deep sequence model (report only, not shipped to the phone) ---------------------
+# ------------- deep sequence model ---------------------
 class LSTMModel:
     """
     same idea as the Markov model, but an LSTM reads the whole session so far to predict the next step.
