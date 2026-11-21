@@ -5,7 +5,7 @@ set its alarm threshold on validation sessions, and measure it on test sessions
 Prints whether the ML models beat the simple baseline (overall and per attack class),
 and saves three charts in results/: detection per model, ROC curves, detection per attack class.
 """
-import os, sys
+import os, sys, json
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")    # save charts to files, no window
@@ -36,6 +36,17 @@ def tuned_markov(order, train_sequences, val_sequences):
     (lowest average surprise) - attacks are never used to choose it"""
     best = min(SMOOTHING, key=lambda k: MarkovModel(order, k).fit(train_sequences).score(val_sequences).mean())
     return MarkovModel(order, best).fit(train_sequences)
+
+
+def export_count_model(X_train, X_val, path):
+    """what the phone's CountDetector needs: mean and spread of each count on normal training sessions,
+    and the alarm limit = 99% of the 'too high' score on normal validation sessions"""
+    mean, spread = X_train.mean(), X_train.std().clip(lower=0.1)
+    too_high = ((X_val - mean) / spread).max(axis=1)
+    model = {"features": list(X_train.columns), "mean": mean.tolist(), "spread": spread.tolist(),
+             "limit": float(too_high.quantile(QUANTILE))}
+    with open(path, "w") as f:
+        json.dump(model, f, indent=1)
 
 
 NEW_DATA_FROM = pd.Timestamp("2026-11-19", tz="UTC")   # the day the new benign collection started
@@ -173,6 +184,7 @@ def main():
     save_charts(scores.loc[test], y, results, per_class)
 
     markov2.export(os.path.join(RESULTS_DIR, "markov_model.json"), thresholds["Markov2"])
+    export_count_model(X.loc[train], X.loc[val], os.path.join(RESULTS_DIR, "count_model.json"))   # phone's count check
 
     print(f"train {len(train)}  val {len(val)}  test {len(test)}   "
           f"{X.shape[1]} features, timing {'on' if USE_TIMING else 'off'}, "
