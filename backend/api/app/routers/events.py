@@ -10,6 +10,7 @@ from app.db import get_db
 from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
+from app.services.splunk import send_to_splunk
 
 router = APIRouter(tags=["events"])
 
@@ -29,6 +30,7 @@ def receive_event(payload: RaspEvent, db: Session = Depends(get_db)) -> dict[str
     db.add(row)
     db.flush()
 
+    alert_payload = None
     match = classify_rasp_event(payload)
     if match is not None:
         db.add(
@@ -42,9 +44,18 @@ def receive_event(payload: RaspEvent, db: Session = Depends(get_db)) -> dict[str
                 source="RASP",
             )
         )
+        alert_payload = {
+            "severity": match.severity,
+            "title": match.title,
+            "reason": match.reason,
+            "source": "RASP",
+        }
 
     db.commit()
+    # Best-effort SIEM forward; webhook response must stay Android-compatible.
+    send_to_splunk(payload, alert=alert_payload)
     return {"action": "allow"}
+
 
 
 
