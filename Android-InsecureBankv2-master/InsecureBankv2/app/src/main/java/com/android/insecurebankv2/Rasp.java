@@ -37,11 +37,14 @@ public class Rasp {
     {
          final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
 
-         // On-device Markov: if this step makes the session unusual, also POST ME-ML once.
-         boolean mlAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+        // On-device Markov2+ZScore: each detector sees every event; either one = ME-ML alert (once each).
+         boolean markovAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+         boolean countAlarm = com.intellirasp.detector.CountDetector.onEvent(eventId, component, data);
          postEvent(seq, eventId, eventType, component, data);
-         if (mlAlarm) {
-             postMlAnomalyAlert();
+         if (markovAlarm) postMlAnomalyAlert("Markov2");
+         if (countAlarm) postMlAnomalyAlert("Count");
+         if (markovAlarm || countAlarm) {      // ML = block: logout, back to login (see the action table)
+            RaspResponse.respond("block", "ML", markovAlarm ? "Markov2" : "Count", "unusual session");
          }
     }
 
@@ -90,17 +93,24 @@ public class Rasp {
      * Once per unusual session: tell the SIEM the Markov model fired.
      * Uses postEvent (not send) so ME-ML is not scored again.
      */
-    private static void postMlAnomalyAlert() {
+        private static void postMlAnomalyAlert(String detector) {
         try {
             JSONObject d = new JSONObject();
-            d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
-            d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
-            d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            if ("Markov2".equals(detector)) {      // unusual ORDER of steps
+                d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
+                d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            } else {                                // too MANY of something
+                d.put("ml_score", com.intellirasp.detector.CountDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.CountDetector.getLimit());
+                d.put("trigger_step", "too many " + com.intellirasp.detector.CountDetector.getLastFeature());
+            }
             d.put("detection_result", "DETECTED");
-            d.put("model", "Markov2");
+            d.put("model", "Markov2+ZScore");
+            d.put("detector", detector);
             final int seq = SEQ.incrementAndGet();
-            postEvent(seq, "ME-ML", "ML_ANOMALY", "MarkovDetector", d);
-            Log.w("RASP", "posted ML_ANOMALY alert to SIEM");
+            postEvent(seq, "ME-ML", "ML_ANOMALY", detector + "Detector", d);
+            Log.w("RASP", "posted ML_ANOMALY alert to SIEM (" + detector + ")");
         } catch (org.json.JSONException e) {
             Log.e("RASP", "ML alert payload failed", e);
         }
@@ -182,10 +192,18 @@ public class Rasp {
     // AS07: run the debugger rule and send ME-11 only when its state changes.
     public static synchronized void checkDebugger(Context context, String component) {
         if (context == null) return;
+        
         boolean attached = AS07DebuggerRule.check(context);
         if (lastDebuggerState == null || attached != lastDebuggerState) {
-            debuggerEvent(attached, AS07DebuggerRule.isDebuggable(context), component);
+            boolean debuggable = AS07DebuggerRule.isDebuggable(context);
+            debuggerEvent(attached, debuggable, component);   // 1. tell the SIEM (ME-11)
+            boolean firstCheck = lastDebuggerState == null;
             lastDebuggerState = attached;
+            if (attached) {                                   // 2. debugger attached = terminate
+                RaspResponse.respond("terminate", "RULE", "AS07", "debugger attached");
+            } else if (firstCheck && debuggable) {            // debuggable build only = silent alert, once
+                RaspResponse.respond("alert", "RULE", "AS07", "debuggable build");
+            }
         }
     }
 

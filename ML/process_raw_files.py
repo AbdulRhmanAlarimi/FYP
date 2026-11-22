@@ -59,7 +59,8 @@ def load_events(raw_dir):
     event_df = pd.concat([event_df.drop(columns="data"), fields], axis=1)
     event_df["t"] = pd.to_datetime(event_df["timestamp"], errors="coerce", utc=True, format="ISO8601")
     events = drop_leftovers(order_events(event_df))
-    rule_only = (events.event_id == "ME-07") & (events.component == "TransactionCacheDb")   # Qais's AS08 search check, for the rules only
+    # Qais's AS08 search check (ME-07) and its cache writes (ME-02, new APK): for the rules only
+    rule_only = events.event_id.isin(["ME-07", "ME-02"]) & (events.component == "TransactionCacheDb")
     return events[~rule_only].reset_index(drop=True)
 
 def order_events(event_df):
