@@ -124,13 +124,24 @@ public class TrackUserContentProvider extends ContentProvider {
 
 		// Replace
 		reportCaller("QUERY");
-		Cursor c = null;
+				Cursor c = null;
 		boolean ok = false;
+		boolean blocked = false;
 		try {
+			// AS08 BEFORE the query: check the selection and every argument
+			String input = selection == null ? "" : selection;
+			if (selectionArgs != null) for (String a : selectionArgs) input += " " + a;
+			if (com.intellirasp.detector.AS08SqlInjectionRule.match(getContext(), input) != null) {
+				blocked = true;
+				throw new SecurityException("Permission denied");
+			}
 			c = qb.query(db, projection, selection, selectionArgs, null, null, sortOrder);
 			ok = true;
 		} finally {   // runs even if the query crashes, so injected SQL is still reported
 			Rasp.sql(getContext(), DATABASE_NAME, "SELECT", TABLE_NAME, selection, selectionArgs, ok, "TrackUserContentProvider");
+			if (blocked) {
+				RaspResponse.respond("alert", "RULE", "AS08", "provider sql injection");
+			}
 		}
 
 
