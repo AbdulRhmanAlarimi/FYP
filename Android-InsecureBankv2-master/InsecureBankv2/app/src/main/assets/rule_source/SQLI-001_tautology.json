@@ -1,0 +1,7 @@
+{
+  "id": "SQLI-001",
+  "name": "Tautology injection",
+  "severity": "HIGH",
+  "pattern": "(?i)('\\s*or\\s*'[^']*'\\s*=\\s*'[^']*|\\\"\\s*or\\s*\\\"[^\\\"]*\\\"\\s*=\\s*\\\"[^\\\"]*|\\bor\\s+1\\s*=\\s*1\\b)",
+  "description": "' OR '1'='1 style always-true predicate that returns every row"
+}

@@ -1,5 +1,6 @@
 package com.android.insecurebankv2;
 
+import android.content.Context;
 import android.util.Log;
 import org.json.JSONObject;
 import java.io.OutputStream;
@@ -10,9 +11,11 @@ import java.util.Date; //Date
 import java.util.Locale;
 import java.util.TimeZone;
 
+import com.intellirasp.detector.AS07DebuggerRule;
+import com.intellirasp.detector.AS08SqlInjectionRule;
+
 //OS & Emulator
 import android.os.Build;
-import android.os.Debug;
 import java.io.File;
 
 
@@ -33,20 +36,39 @@ public class Rasp {
     )
     {
          final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
+
+        // On-device Markov2+ZScore: each detector sees every event; either one = ME-ML alert (once each).
+         boolean markovAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+         boolean countAlarm = com.intellirasp.detector.CountDetector.onEvent(eventId, component, data);
+         postEvent(seq, eventId, eventType, component, data);
+         if (markovAlarm) postMlAnomalyAlert("Markov2");
+         if (countAlarm) postMlAnomalyAlert("Count");
+         if (markovAlarm || countAlarm) {      // ML = block: logout, back to login (see the action table)
+            RaspResponse.respond("block", "ML", markovAlarm ? "Markov2" : "Count", "unusual session");
+         }
+    }
+
+    /** POST one RASP event to the backend (no Markov scoring). */
+    private static void postEvent(
+        final int seq,
+        final String eventId,
+        final String eventType,
+        final String component,
+        final JSONObject data
+    ) {
         new Thread(new Runnable(){ // network is not allowed on main thread
-            @Override 
+            @Override
             public void run(){
                 try{
                     JSONObject event =  new JSONObject();
-                    event.put("seq", seq);                  // NEW
-                    event.put("launch_id", LAUNCH_ID);      // NEW
+                    event.put("seq", seq);
+                    event.put("launch_id", LAUNCH_ID);
                     event.put("event_id",eventId);
                     event.put("event_type", eventType);
                     event.put("timestamp", now());
                     event.put("component", component);
                     event.put("data", data);
 
-                    // connection with server let in lesn
                     HttpURLConnection conn = (HttpURLConnection) new URL(SERVER).openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json");
@@ -60,12 +82,38 @@ public class Rasp {
                     Log.i("RASP", "sent " + eventType + " -> HTTP " + conn.getResponseCode());
                     conn.disconnect();
                 }
-                //Catch
                 catch (Exception e){
                     Log.e("RASP", "send failed "+ e);
                 }
             }
         }).start();
+    }
+
+    /**
+     * Once per unusual session: tell the SIEM the Markov model fired.
+     * Uses postEvent (not send) so ME-ML is not scored again.
+     */
+        private static void postMlAnomalyAlert(String detector) {
+        try {
+            JSONObject d = new JSONObject();
+            if ("Markov2".equals(detector)) {      // unusual ORDER of steps
+                d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
+                d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            } else {                                // too MANY of something
+                d.put("ml_score", com.intellirasp.detector.CountDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.CountDetector.getLimit());
+                d.put("trigger_step", "too many " + com.intellirasp.detector.CountDetector.getLastFeature());
+            }
+            d.put("detection_result", "DETECTED");
+            d.put("model", "Markov2+ZScore");
+            d.put("detector", detector);
+            final int seq = SEQ.incrementAndGet();
+            postEvent(seq, "ME-ML", "ML_ANOMALY", detector + "Detector", d);
+            Log.w("RASP", "posted ML_ANOMALY alert to SIEM (" + detector + ")");
+        } catch (org.json.JSONException e) {
+            Log.e("RASP", "ML alert payload failed", e);
+        }
     }
 
 
@@ -122,35 +170,51 @@ public class Rasp {
     }
 
     private static boolean envStarted = false;
+    private static Boolean lastDebuggerState = null;
 
-    public static synchronized void startEnvChecks() {
+    public static synchronized void startEnvChecks(final Context context) {
         if (envStarted) return;          // only once per app run
         envStarted = true;
+        final Context appContext = context.getApplicationContext();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 rootCheck();
                 emulatorCheck();
-                Boolean last = null;
-                while (true) {           // send only when the debugger state changes
-                    boolean attached = Debug.isDebuggerConnected();
-                    if (last == null || attached != last) {
-                        debuggerEvent(attached);
-                        last = attached;
-                    }
+                while (true) {           // AS07 runs continuously, not only at startup
+                    checkDebugger(appContext, "Rasp");
                     try { Thread.sleep(2000); } catch (InterruptedException e) { return; }
                 }
             }
         }).start();
     }
 
-    private static void debuggerEvent(boolean attached) {
+    // AS07: run the debugger rule and send ME-11 only when its state changes.
+    public static synchronized void checkDebugger(Context context, String component) {
+        if (context == null) return;
+        
+        boolean attached = AS07DebuggerRule.check(context);
+        if (lastDebuggerState == null || attached != lastDebuggerState) {
+            boolean debuggable = AS07DebuggerRule.isDebuggable(context);
+            debuggerEvent(attached, debuggable, component);   // 1. tell the SIEM (ME-11)
+            boolean firstCheck = lastDebuggerState == null;
+            lastDebuggerState = attached;
+            if (attached) {                                   // 2. debugger attached = terminate
+                RaspResponse.respond("terminate", "RULE", "AS07", "debugger attached");
+            } else if (firstCheck && debuggable) {            // debuggable build only = silent alert, once
+                RaspResponse.respond("alert", "RULE", "AS07", "debuggable build");
+            }
+        }
+    }
+
+    private static void debuggerEvent(boolean attached, boolean debuggable, String component) {
         try {
             JSONObject d = new JSONObject();
             d.put("debugger_state", attached ? "ATTACHED" : "DETACHED");
             d.put("process_id", android.os.Process.myPid());
+            d.put("debuggable", debuggable);
             d.put("detection_result", attached ? "DETECTED" : "NOT_DETECTED");
-            send("ME-11", "DEBUGGER_ATTACHMENT", "Rasp", d);
+            send("ME-11", "DEBUGGER_ATTACHMENT", component, d);
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
 
@@ -168,6 +232,9 @@ public class Rasp {
             d.put("suspicious_artifact_indicator", found.toString());
             d.put("detection_result", rooted ? "DETECTED" : "NOT_DETECTED");
             send("ME-14", "ROOT_ENVIRONMENT", "Rasp", d);
+
+            if (rooted) RaspResponse.respond("alert", "RULE", "ROOT", "rooted device");
+
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
 
@@ -183,13 +250,15 @@ public class Rasp {
             d.put("device_system_properties", "model=" + Build.MODEL + ";product=" + Build.PRODUCT);
             d.put("hardware_indicators", Build.HARDWARE);
             d.put("detection_result", hits.length() > 0 ? "DETECTED" : "NOT_DETECTED");
+
             send("ME-15", "EMULATOR_ENVIRONMENT_DETECTION", "Rasp", d);
+            if (hits.length() > 0) RaspResponse.respond("alert", "RULE", "EMULATOR", "emulator detected");
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
 
 
     // ME-07 + ME-02: one call sends both events
-    public static void sql(String dbName, String operation, String table, String selection,
+    public static void sql(Context context, String dbName, String operation, String table, String selection,
                         String[] args, boolean ok, String component) {
         try {
             String where = selection == null ? "" : selection;
@@ -199,6 +268,11 @@ public class Rasp {
             int count = args == null ? 0 : args.length;
             String result = ok ? "SUCCESS" : "ERROR";
 
+            // AS08: check the values that reach this statement against the JSON rules.
+            AS08SqlInjectionRule.Match match = context == null ? null
+                    : AS08SqlInjectionRule.match(context, sqlInput(selection, args));
+            boolean suspicious = match != null;
+
             JSONObject q = new JSONObject();
             q.put("query_structure", structure);
             q.put("operation", operation);
@@ -207,6 +281,13 @@ public class Rasp {
             q.put("parameter_count", count);
             q.put("parameter_types", "STRING");
             q.put("execution_result", result);
+            q.put("validation_result", suspicious ? "SUSPICIOUS" : "PASSED");
+            if (suspicious) {
+                q.put("detection_result", "DETECTED");
+                q.put("detection_rule_id", match.id);
+                q.put("detection_rule_name", match.name);
+                q.put("detection_rule_severity", match.severity);
+            }
             send("ME-07", "SQL_QUERY_EXECUTION", component, q);
 
             JSONObject a = new JSONObject();
@@ -218,6 +299,20 @@ public class Rasp {
             a.put("status", result);
             send("ME-02", "SQLITE_DB_ACCESS", component, a);
         } catch (org.json.JSONException e) { e.printStackTrace(); }
+    }
+
+    /** the text AS08 should inspect: the selection plus every bound argument. */
+    private static String sqlInput(String selection, String[] args) {
+        StringBuilder input = new StringBuilder();
+        if (selection != null) input.append(selection);
+        if (args != null) {
+            for (String arg : args) {
+                if (arg == null) continue;
+                if (input.length() > 0) input.append(' ');
+                input.append(arg);
+            }
+        }
+        return input.toString();
     }
 
     // ME-09 for the content provider: who is calling it?

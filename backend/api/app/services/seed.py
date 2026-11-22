@@ -14,6 +14,7 @@ from app.db import SessionLocal
 from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
+from app.services.correlate_v2 import persist_v2_alerts_for_event
 from app.services.splunk import send_to_splunk, splunk_enabled
 
 logger = logging.getLogger(__name__)
@@ -129,6 +130,10 @@ def _build_demo_events(now: datetime) -> list[RaspEvent]:
          {"url_path": "/dotransfer", "http_method": "POST", "connection_result": "HTTP_200", "destination_port": "8888"}, 19, launch_c),
         (2, "ME-09", "ANDROID_COMPONENT_INVOCATION", "PostLogin",
          {"auth_state": "AUTHENTICATED"}, 20, launch_c),
+        # On-device Markov anomaly (same shape the phone posts when score > threshold)
+        (1, "ME-ML", "ML_ANOMALY", "MarkovDetector",
+         {"ml_score": 0.91, "threshold": 0.72, "trigger_step": "ME-10|/dotransfer",
+          "detection_result": "DETECTED", "model": "Markov2"}, 21, launch_c),
     ]
 
     events: list[RaspEvent] = []
@@ -197,7 +202,7 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                     reason=match.reason,
                     event_type=payload.event_type,
                     event_id=payload.event_id,
-                    source="RASP",
+                    source=match.source,
                     created_at=received_at,
                 )
             )
@@ -206,11 +211,14 @@ def seed_demo_data(db: Session, *, force: bool = False) -> dict[str, int]:
                 "severity": match.severity,
                 "title": match.title,
                 "reason": match.reason,
-                "source": "RASP",
+                "source": match.source,
             }
 
         if hec_on and send_to_splunk(payload, alert=alert_payload):
             splunk_forwarded += 1
+
+        # v2 stateful rules (_v2 event types) for demo visibility.
+        created_alerts += persist_v2_alerts_for_event(db, row, commit=False)
 
     db.commit()
     return {

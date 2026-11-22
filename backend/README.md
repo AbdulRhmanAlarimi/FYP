@@ -59,6 +59,25 @@ ML collector can still `GET http://127.0.0.1:8000/events`.
 | `GET` | `/health` | Liveness |
 | `GET` | `/health/siem` | Whether Splunk HEC forwarding is configured |
 | `POST` | `/api/seed` | Load demo events (`?force=true` to wipe and reload) |
+| `GET` | `/api/integrity/trusted-hash` | Official APK SHA-256 for on-device AS09 |
+| `PUT` | `/api/integrity/trusted-hash` | Set official APK SHA-256 (`{"sha256":"<64 hex>"}`) |
+
+### AS09 trusted APK hash
+
+The official APK hash must **not** be embedded in the APK (that would change the hash).
+Store it in Postgres via the API after you build:
+
+```bash
+# after assembling the APK
+sha256sum Android-InsecureBankv2-master/InsecureBankv2/app/build/outputs/apk/debug/app-debug.apk
+
+curl -X PUT http://127.0.0.1:8000/api/integrity/trusted-hash \
+  -H 'Content-Type: application/json' \
+  -d '{"sha256":"<paste 64-char hex here>"}'
+```
+
+On launch, `AS09IntegrityRule` fetches that baseline and compares it to the installed APK.
+Mismatch → ME-13 with `verification_result=FAILED` and a RULE alert in Grafana.
 
 ## Grafana dashboard
 

@@ -37,6 +37,8 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
     public static final String COL_COUNTERPARTY = "counterparty";
     public static final String COL_DATE = "txn_date";
 
+    private final Context context;
+
     private static final String CREATE =
             "CREATE TABLE " + TABLE + " ("
                     + COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -51,6 +53,7 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
 
     public TransactionCacheDb(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context.getApplicationContext();
     }
 
     @Override
@@ -171,7 +174,15 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
     public List<String> search(String owner, String keyword, String type) {
         List<String> out = new ArrayList<String>();
         Cursor c = null;
+        boolean ok = false;
+        boolean blocked = false;
         try {
+            // AS08 BEFORE the query: an injection never reaches the database
+            if (com.intellirasp.detector.AS08SqlInjectionRule.match(context, keyword + " " + type) != null) {
+                blocked = true;
+                out.add("Search could not be completed.");
+                return out;
+            }
             //  ---- VULNERABLE: `keyword` is concatenated into the statement ----
             String columns = COL_REFERENCE + ", " + COL_ACCOUNT + ", " + COL_TYPE
                     + ", " + COL_DIRECTION + ", " + COL_AMOUNT + ", " + COL_COUNTERPARTY
@@ -189,6 +200,7 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
             //  -------------------------------------------------------------------------
 
             c = getReadableDatabase().rawQuery(sql, new String[]{owner});
+            ok = true;
             while (c.moveToNext()) {
                 out.add(format(c));
             }
@@ -196,6 +208,12 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
             // Keeps the application alive when the payload is not valid SQL.
             out.add("Search could not be completed.");
         } finally {
+            Rasp.sql(context, DATABASE_NAME, "SELECT", TABLE, keyword,
+                    new String[]{owner, type}, ok, "TransactionCacheDb");
+            
+            if (blocked) {
+                RaspResponse.respond("block", "RULE", "AS08", "sql injection attempt");
+            }
             close(c);
         }
         return out;

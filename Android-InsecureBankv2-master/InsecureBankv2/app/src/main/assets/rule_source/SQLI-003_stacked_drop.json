@@ -1,0 +1,7 @@
+{
+  "id": "SQLI-003",
+  "name": "Stacked query / destructive statement",
+  "severity": "CRITICAL",
+  "pattern": "(?i)(;\\s*(drop\\s+table|delete\\s+from|insert\\s+into|update\\s+\\w+\\s+set)\\b|\\b(drop\\s+table|delete\\s+from)\\b)",
+  "description": "Statement separator followed by a destructive verb, or a bare DROP/DELETE"
+}

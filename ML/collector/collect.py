@@ -10,7 +10,7 @@ HERE       = os.path.dirname(__file__)
 OUT_DIR    = os.path.join(HERE, "..", "datasets", "raw")
 MANIFEST   = os.path.join(HERE, "..", "datasets", "labels.csv")
 LABEL      = "benign"
-SETTLE_SEC = 1.5
+SETTLE_SEC = 3 # for attack data we need to wait longer since the attack terminate immedialty after 
 
 def get_events():
     with urllib.request.urlopen(HOOK_URL, timeout=5) as r:

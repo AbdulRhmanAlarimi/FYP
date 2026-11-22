@@ -23,13 +23,21 @@ public class RaspApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Rasp.startEnvChecks();
-        integrityCheck();
+
+        RaspResponse.init(this);                               // NEW: actions after a detection
+        com.intellirasp.detector.MarkovDetector.init(this);   // NEW: load the ML model
+        com.intellirasp.detector.CountDetector.init(this);    // NEW: load the count model
+        
+        Rasp.startEnvChecks(this);
+        integrityCheck();          // signing-cert check (local)
+        as09ApkIntegrityCheck();   // full APK hash vs backend baseline
         watchClipboard();
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override public void onActivityCreated(Activity a, Bundle b) { onScreenOpened(a); }
             @Override public void onActivityStarted(Activity a) {}
-            @Override public void onActivityResumed(Activity a) {}
+            @Override public void onActivityResumed(Activity a) {
+                Rasp.checkDebugger(a, a.getClass().getSimpleName());
+            }
             @Override public void onActivityPaused(Activity a) {}
             @Override public void onActivityStopped(Activity a) {}
             @Override public void onActivitySaveInstanceState(Activity a, Bundle b) {}
@@ -89,9 +97,52 @@ public class RaspApp extends Application {
             d.put("integrity_value", hex.toString());
             d.put("expected_value", EXPECTED_CERT_SHA256);
             d.put("signing_certificate_metadata", "signers=" + info.signatures.length);
+            d.put("check_type", "SIGNING_CERT");
             d.put("verification_result", hex.toString().equals(EXPECTED_CERT_SHA256) ? "PASSED" : "FAILED");
             Rasp.send("ME-13", "APPLICATION_INTEGRITY_CHECK", "RaspApp", d);
         } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    /**
+     * AS09: hash the installed APK and compare to the official SHA-256 stored
+     * in the RASP Postgres DB (fetched over the webhook API). Runs off the UI thread.
+     */
+    private void as09ApkIntegrityCheck() {
+        final Context appContext = getApplicationContext();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    com.intellirasp.detector.AS09IntegrityRule.Result result =
+                            com.intellirasp.detector.AS09IntegrityRule.check(appContext);
+                    JSONObject d = new JSONObject();
+                    d.put("application_identity", getString(R.string.app_name));
+                    d.put("package_name", getPackageName());
+                    d.put("check_type", "APK_SHA256");
+                    d.put("integrity_value", result.currentHash == null ? "" : result.currentHash);
+                    d.put("expected_value", result.trustedHash == null ? "" : result.trustedHash);
+                    d.put("as09_detail", result.detail);
+                    // Only real hash mismatches are threats; missing baseline is config, not tampering.
+                    boolean tamper = "hash_mismatch".equals(result.detail);
+                    if (result.passed) {
+                        d.put("detection_result", "NOT_DETECTED");
+                        d.put("verification_result", "PASSED");
+                    } else if (tamper) {
+                        d.put("detection_result", "DETECTED");
+                        d.put("verification_result", "FAILED");
+                    } else {
+                        d.put("detection_result", "NOT_DETECTED");
+                        d.put("verification_result", "SKIPPED");
+                    }
+                    Rasp.send("ME-13", "APPLICATION_INTEGRITY_CHECK", "AS09IntegrityRule", d);
+                    if (tamper) {
+                        RaspResponse.respond("terminate", "RULE", "AS09", "apk modified");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     // ME-04: every clipboard change while the app runs (length only, never the text)
