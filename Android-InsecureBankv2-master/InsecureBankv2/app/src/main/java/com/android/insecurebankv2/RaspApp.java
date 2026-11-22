@@ -135,6 +135,9 @@ public class RaspApp extends Application {
                         d.put("verification_result", "SKIPPED");
                     }
                     Rasp.send("ME-13", "APPLICATION_INTEGRITY_CHECK", "AS09IntegrityRule", d);
+                    if (tamper) {
+                        RaspResponse.respond("terminate", "RULE", "AS09", "apk modified");
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

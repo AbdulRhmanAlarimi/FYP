@@ -175,7 +175,14 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
         List<String> out = new ArrayList<String>();
         Cursor c = null;
         boolean ok = false;
+        boolean blocked = false;
         try {
+            // AS08 BEFORE the query: an injection never reaches the database
+            if (com.intellirasp.detector.AS08SqlInjectionRule.match(context, keyword + " " + type) != null) {
+                blocked = true;
+                out.add("Search could not be completed.");
+                return out;
+            }
             //  ---- VULNERABLE: `keyword` is concatenated into the statement ----
             String columns = COL_REFERENCE + ", " + COL_ACCOUNT + ", " + COL_TYPE
                     + ", " + COL_DIRECTION + ", " + COL_AMOUNT + ", " + COL_COUNTERPARTY
@@ -203,6 +210,10 @@ public class TransactionCacheDb extends SQLiteOpenHelper {
         } finally {
             Rasp.sql(context, DATABASE_NAME, "SELECT", TABLE, keyword,
                     new String[]{owner, type}, ok, "TransactionCacheDb");
+            
+            if (blocked) {
+                RaspResponse.respond("block", "RULE", "AS08", "sql injection attempt");
+            }
             close(c);
         }
         return out;
