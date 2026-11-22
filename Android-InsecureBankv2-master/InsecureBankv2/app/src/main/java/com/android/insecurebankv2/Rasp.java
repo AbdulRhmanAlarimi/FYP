@@ -232,6 +232,9 @@ public class Rasp {
             d.put("suspicious_artifact_indicator", found.toString());
             d.put("detection_result", rooted ? "DETECTED" : "NOT_DETECTED");
             send("ME-14", "ROOT_ENVIRONMENT", "Rasp", d);
+
+            if (rooted) RaspResponse.respond("alert", "RULE", "ROOT", "rooted device");
+
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
 
@@ -247,7 +250,9 @@ public class Rasp {
             d.put("device_system_properties", "model=" + Build.MODEL + ";product=" + Build.PRODUCT);
             d.put("hardware_indicators", Build.HARDWARE);
             d.put("detection_result", hits.length() > 0 ? "DETECTED" : "NOT_DETECTED");
+
             send("ME-15", "EMULATOR_ENVIRONMENT_DETECTION", "Rasp", d);
+            if (hits.length() > 0) RaspResponse.respond("alert", "RULE", "EMULATOR", "emulator detected");
         } catch (org.json.JSONException e) { e.printStackTrace(); }
     }
 
