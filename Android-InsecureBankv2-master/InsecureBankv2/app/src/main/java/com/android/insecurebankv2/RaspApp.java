@@ -25,6 +25,7 @@ public class RaspApp extends Application {
         super.onCreate();
 
         com.intellirasp.detector.MarkovDetector.init(this);   // NEW: load the ML model
+        com.intellirasp.detector.CountDetector.init(this);    // NEW: load the count model
         
         Rasp.startEnvChecks(this);
         integrityCheck();          // signing-cert check (local)

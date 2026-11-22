@@ -37,12 +37,12 @@ public class Rasp {
     {
          final int seq = SEQ.incrementAndGet();   // order number, taken before the thread starts
 
-         // On-device Markov: if this step makes the session unusual, also POST ME-ML once.
-         boolean mlAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+        // On-device Markov2+ZScore: each detector sees every event; either one = ME-ML alert (once each).
+         boolean markovAlarm = com.intellirasp.detector.MarkovDetector.onEvent(eventId, component, data);
+         boolean countAlarm = com.intellirasp.detector.CountDetector.onEvent(eventId, component, data);
          postEvent(seq, eventId, eventType, component, data);
-         if (mlAlarm) {
-             postMlAnomalyAlert();
-         }
+         if (markovAlarm) postMlAnomalyAlert("Markov2");
+         if (countAlarm) postMlAnomalyAlert("Count");
     }
 
     /** POST one RASP event to the backend (no Markov scoring). */
@@ -90,17 +90,24 @@ public class Rasp {
      * Once per unusual session: tell the SIEM the Markov model fired.
      * Uses postEvent (not send) so ME-ML is not scored again.
      */
-    private static void postMlAnomalyAlert() {
+        private static void postMlAnomalyAlert(String detector) {
         try {
             JSONObject d = new JSONObject();
-            d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
-            d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
-            d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            if ("Markov2".equals(detector)) {      // unusual ORDER of steps
+                d.put("ml_score", com.intellirasp.detector.MarkovDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.MarkovDetector.getThreshold());
+                d.put("trigger_step", com.intellirasp.detector.MarkovDetector.getLastStep());
+            } else {                                // too MANY of something
+                d.put("ml_score", com.intellirasp.detector.CountDetector.getLastScore());
+                d.put("threshold", com.intellirasp.detector.CountDetector.getLimit());
+                d.put("trigger_step", "too many " + com.intellirasp.detector.CountDetector.getLastFeature());
+            }
             d.put("detection_result", "DETECTED");
-            d.put("model", "Markov2");
+            d.put("model", "Markov2+ZScore");
+            d.put("detector", detector);
             final int seq = SEQ.incrementAndGet();
-            postEvent(seq, "ME-ML", "ML_ANOMALY", "MarkovDetector", d);
-            Log.w("RASP", "posted ML_ANOMALY alert to SIEM");
+            postEvent(seq, "ME-ML", "ML_ANOMALY", detector + "Detector", d);
+            Log.w("RASP", "posted ML_ANOMALY alert to SIEM (" + detector + ")");
         } catch (org.json.JSONException e) {
             Log.e("RASP", "ML alert payload failed", e);
         }
