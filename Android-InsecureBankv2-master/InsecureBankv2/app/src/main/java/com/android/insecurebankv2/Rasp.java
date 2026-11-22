@@ -43,6 +43,9 @@ public class Rasp {
          postEvent(seq, eventId, eventType, component, data);
          if (markovAlarm) postMlAnomalyAlert("Markov2");
          if (countAlarm) postMlAnomalyAlert("Count");
+         if (markovAlarm || countAlarm) {      // ML = block: logout, back to login (see the action table)
+            RaspResponse.respond("block", "ML", markovAlarm ? "Markov2" : "Count", "unusual session");
+         }
     }
 
     /** POST one RASP event to the backend (no Markov scoring). */
@@ -189,10 +192,18 @@ public class Rasp {
     // AS07: run the debugger rule and send ME-11 only when its state changes.
     public static synchronized void checkDebugger(Context context, String component) {
         if (context == null) return;
+        
         boolean attached = AS07DebuggerRule.check(context);
         if (lastDebuggerState == null || attached != lastDebuggerState) {
-            debuggerEvent(attached, AS07DebuggerRule.isDebuggable(context), component);
+            boolean debuggable = AS07DebuggerRule.isDebuggable(context);
+            debuggerEvent(attached, debuggable, component);   // 1. tell the SIEM (ME-11)
+            boolean firstCheck = lastDebuggerState == null;
             lastDebuggerState = attached;
+            if (attached) {                                   // 2. debugger attached = terminate
+                RaspResponse.respond("terminate", "RULE", "AS07", "debugger attached");
+            } else if (firstCheck && debuggable) {            // debuggable build only = silent alert, once
+                RaspResponse.respond("alert", "RULE", "AS07", "debuggable build");
+            }
         }
     }
 
