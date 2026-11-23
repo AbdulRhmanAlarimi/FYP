@@ -24,7 +24,7 @@ services:
       DATABASE_URL: postgresql+psycopg2://rasp:rasp@db:5432/rasp
       SPLUNK_HEC_URL: ${SPLUNK_HEC_URL:-}
       SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:-}
-      SPLUNK_HEC_INDEX: ${SPLUNK_HEC_INDEX:-rasp}
+      SPLUNK_HEC_INDEX: ${SPLUNK_HEC_INDEX:-main}
       SPLUNK_HEC_SOURCE: ${SPLUNK_HEC_SOURCE:-rasp_webhook}
       SPLUNK_HEC_SOURCETYPE: ${SPLUNK_HEC_SOURCETYPE:-rasp:json}
       SPLUNK_HEC_VERIFY_SSL: ${SPLUNK_HEC_VERIFY_SSL:-false}
@@ -78,17 +78,22 @@ services:
     ports:
       # Splunk Web (host 8001 — API already uses 8000)
       - "8001:8000"
-      # HTTP Event Collector
+      # HTTP Event Collector (HTTP, no TLS — local lab)
       - "8088:8088"
     volumes:
       - rasp-splunk-data:/opt/splunk/var
       - ./splunk/default.yml:/tmp/defaults/default.yml:ro
+      - ./splunk/apps/rasp_siem:/opt/splunk/etc/apps/rasp_siem
     healthcheck:
-      test: ["CMD-SHELL", "curl -fk https://localhost:8088/services/collector/health || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 30
-      start_period: 120s
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:8088/services/collector/health/1.0 || curl -fsS http://127.0.0.1:8088/services/collector/health || exit 1",
+        ]
+      interval: 20s
+      timeout: 15s
+      retries: 60
+      start_period: 300s
     restart: unless-stopped
 
 volumes:

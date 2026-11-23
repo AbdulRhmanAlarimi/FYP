@@ -3,12 +3,25 @@
 set -euo pipefail
 
 API_BASE="${API_BASE:-http://127.0.0.1:8000}"
-HEC_URL="${HEC_URL:-https://127.0.0.1:8088/services/collector/event}"
+HEC_URL="${HEC_URL:-http://127.0.0.1:8088/services/collector/event}"
 HEC_TOKEN="${HEC_TOKEN:-11111111-1111-1111-1111-111111111111}"
 CHECK_SPLUNK="${CHECK_SPLUNK:-auto}"
 
 pass() { echo "PASS: $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
+
+retry() {
+  local tries="$1"
+  shift
+  local n=1
+  until "$@"; do
+    if (( n >= tries )); then
+      return 1
+    fi
+    sleep 2
+    n=$((n + 1))
+  done
+}
 
 echo "==> API health"
 curl -fsS "${API_BASE}/health" >/dev/null || fail "API /health"
@@ -43,17 +56,16 @@ if [[ "$CHECK_SPLUNK" == "auto" ]]; then
 fi
 
 if [[ "$CHECK_SPLUNK" == "1" || "$CHECK_SPLUNK" == "true" ]]; then
-  echo "==> Splunk HEC health"
-  curl -fk -sS "https://127.0.0.1:8088/services/collector/health" >/dev/null || fail "Splunk HEC health"
-  pass "HEC health"
-
-  echo "==> Direct HEC event"
-  curl -fk -sS -X POST "$HEC_URL" \
+  echo "==> Splunk HEC event post"
+  if ! retry 15 curl -fsS -o /dev/null \
+    --connect-timeout 3 --max-time 10 \
+    -X POST "$HEC_URL" \
     -H "Authorization: Splunk ${HEC_TOKEN}" \
     -H 'Content-Type: application/json' \
-    -d "{\"event\":{\"event_id\":\"ME-99\",\"event_type\":\"SMOKE_TEST\",\"component\":\"smoke_test.sh\",\"timestamp\":\"${TS}\"},\"sourcetype\":\"rasp:json\",\"source\":\"smoke_test\",\"index\":\"rasp\"}" \
-    >/dev/null || fail "direct HEC post"
-  pass "direct HEC post"
+    -d "{\"event\":{\"event_id\":\"ME-99\",\"event_type\":\"SMOKE_TEST\",\"component\":\"smoke_test.sh\",\"timestamp\":\"${TS}\"},\"sourcetype\":\"rasp:json\",\"source\":\"smoke_test\",\"index\":\"main\"}"; then
+    fail "Splunk HEC post — run ./scripts/splunk_diag.sh"
+  fi
+  pass "HEC event post"
 else
   echo "==> Skipping Splunk checks (HEC not configured)"
 fi
