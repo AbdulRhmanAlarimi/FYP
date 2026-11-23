@@ -6,41 +6,49 @@ All code for this feature lives in this folder. It does **not** change the Andro
 
 ## Quick start
 
+A mode argument is **required**:
+
 ```bash
 cd backend
-./start.sh
+./start.sh grafana   # API + Postgres + Grafana
+./start.sh splunk    # API + Postgres + Splunk
+./start.sh both      # API + Postgres + Grafana + Splunk
 ```
 
-You will be asked which SIEM to run:
-
-| Choice | What starts |
-|--------|-------------|
-| `grafana` | API + Postgres + Grafana |
-| `splunk` | API + Postgres + Splunk |
-| `both` | API + Postgres + Grafana + Splunk |
-
-Non-interactive:
-
 ```bash
-./start.sh grafana
-./start.sh splunk
-./start.sh both
+./start.sh --help
 ```
 
 Requirements: Docker with Compose.
 
+`start.sh` builds containers, waits for health, force-loads sample RASP events, runs smoke tests, and prints URLs **only for the mode you started**.
+
+The API also auto-seeds on startup whenever the `events` table is empty.
+
+### grafana
+
 | Service | URL | Creds |
 |---------|-----|-------|
 | API docs | http://127.0.0.1:8000/docs | — |
-| Health | http://127.0.0.1:8000/health | — |
-| SIEM config | http://127.0.0.1:8000/health/siem | — |
 | Grafana | http://127.0.0.1:3000 | `admin` / `admin` |
+
+### splunk
+
+| Service | URL | Creds |
+|---------|-----|-------|
+| API docs | http://127.0.0.1:8000/docs | — |
 | Splunk Web | http://127.0.0.1:8001 | `admin` / `Chang3d!Rasp` |
-| Splunk HEC | https://127.0.0.1:8088 | token below |
+| Splunk HEC | http://127.0.0.1:8088 | token below |
 
-`start.sh` builds containers, waits for health, and force-loads sample RASP events/alerts so dashboards are never empty.
+Open the **RASP SIEM** app (left Apps menu), or go directly to:
 
-The API also auto-seeds on startup whenever the `events` table is empty.
+http://127.0.0.1:8001/en-US/app/rasp_siem/rasp_overview
+
+The default Splunk “Home” page can look empty — that is normal. Use the **RASP SIEM** app or **Search & Reporting**.
+
+### both
+
+Starts Grafana and Splunk together (URLs/creds as above).
 
 ## Android emulator
 
@@ -93,8 +101,7 @@ Anonymous Viewer access is enabled for local demos.
 
 ## Splunk
 
-When you start with `splunk` or `both`, the API forwards each live webhook event **and** seeded demo events to Splunk **HEC**.
-
+When you start with `./start.sh splunk` or `./start.sh both`, the API forwards each live webhook event **and** seeded demo events to Splunk **HEC**. A provisioned **RASP SIEM** app includes charts (not just the empty Home page).
 
 | Setting | Value |
 |---------|-------|
@@ -102,35 +109,58 @@ When you start with `splunk` or `both`, the API forwards each live webhook event
 | Username | `admin` |
 | Password | `Chang3d!Rasp` |
 | HEC token | `11111111-1111-1111-1111-111111111111` |
-| Index | `rasp` |
+| Index | `main` |
 | Sourcetype | `rasp:json` |
+| App / dashboard | `rasp_siem` → **RASP SIEM Overview** |
 
-Example search in Splunk:
+Example search in **Search & Reporting**:
 
 ```text
-index=rasp sourcetype=rasp:json
+index=main sourcetype=rasp:json
 | stats count by event_type
 ```
 
 Threats that were classified also include an `alert` object (severity, title, reason).
 
-First Splunk boot can take several minutes while it accepts the license and starts HEC.
+First Splunk boot can take **several minutes**. `./start.sh splunk` waits for HEC to accept events **before** seeding, so you should see `splunk_forwarded` > 0.
+
+If HEC never becomes ready, gather diagnostics then reset volumes:
+
+```bash
+./scripts/splunk_diag.sh
+docker compose --profile splunk down -v
+./start.sh splunk
+```
+
+Notes:
+- First Splunk boot can take 5–15 minutes and needs roughly **2GB+ RAM**.
+- HEC is **HTTP** on port `8088` (no TLS) for local lab reliability.
+- Events go to `index=main` (`sourcetype=rasp:json`).
+
+Manual reseed after Splunk is up:
+
+```bash
+curl -X POST 'http://127.0.0.1:8000/api/seed?force=true'
+```
+
 
 ## Layout
 
 ```text
 backend/
-  start.sh              # choose grafana | splunk | both
-  docker-compose.yml    # profiles: grafana, splunk
+  start.sh                 # REQUIRED arg: grafana | splunk | both
+  docker-compose.yml       # profiles: grafana, splunk
   PLAN.md
-  api/                  # FastAPI + SQLAlchemy + optional HEC forward
-  grafana/              # provisioning + dashboard JSON
-  splunk/               # default.yml (HEC + rasp index)
+  api/                     # FastAPI + SQLAlchemy + optional HEC forward
+  grafana/                 # provisioning + dashboard JSON
+  splunk/
+    default.yml            # HEC (HTTP) on main index
+
+    apps/rasp_siem/        # Splunk dashboard app
+  scripts/smoke_test.sh
 ```
 
 ## Smoke test
-
-After the stack is up:
 
 ```bash
 cd backend
