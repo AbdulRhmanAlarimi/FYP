@@ -11,6 +11,7 @@ from app.models import Alert, Event
 from app.schemas import RaspEvent
 from app.services.classify import classify_rasp_event
 from app.services.correlate_v2 import correlate_event_v2_background
+from app.services.splunk import send_to_splunk
 
 router = APIRouter(tags=["events"])
 
@@ -34,6 +35,7 @@ def receive_event(
     db.add(row)
     db.flush()
 
+    alert_payload = None
     match = classify_rasp_event(payload)
     if match is not None:
         db.add(
@@ -47,11 +49,20 @@ def receive_event(
                 source=match.source,
             )
         )
+        alert_payload = {
+            "severity": match.severity,
+            "title": match.title,
+            "reason": match.reason,
+            "source": match.source,
+        }
 
     db.commit()
+    # Best-effort SIEM forward; webhook response must stay Android-compatible.
+    send_to_splunk(payload, alert=alert_payload)
     # v2 stateful correlation runs asynchronously to keep ingest latency low.
     background_tasks.add_task(correlate_event_v2_background, row.id)
     return {"action": "allow"}
+
 
 
 

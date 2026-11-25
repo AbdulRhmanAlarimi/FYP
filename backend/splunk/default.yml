@@ -1,0 +1,8 @@
+# Minimal first-boot defaults. Keep this small — heavy conf here can stall Ansible.
+# Use index=main so we do not need a custom index on first boot.
+splunk:
+  hec:
+    enable: true
+    ssl: false
+    port: 8088
+    token: 11111111-1111-1111-1111-111111111111

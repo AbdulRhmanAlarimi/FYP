@@ -22,6 +22,12 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg2://rasp:rasp@db:5432/rasp
+      SPLUNK_HEC_URL: ${SPLUNK_HEC_URL:-}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN:-}
+      SPLUNK_HEC_INDEX: ${SPLUNK_HEC_INDEX:-main}
+      SPLUNK_HEC_SOURCE: ${SPLUNK_HEC_SOURCE:-rasp_webhook}
+      SPLUNK_HEC_SOURCETYPE: ${SPLUNK_HEC_SOURCETYPE:-rasp:json}
+      SPLUNK_HEC_VERIFY_SSL: ${SPLUNK_HEC_VERIFY_SSL:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -38,6 +44,7 @@ services:
     restart: unless-stopped
 
   grafana:
+    profiles: ["grafana"]
     image: grafana/grafana:11.5.2
     ports:
       - "3000:3000"
@@ -59,6 +66,37 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  splunk:
+    profiles: ["splunk"]
+    image: splunk/splunk:9.3
+    hostname: splunk
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_PASSWORD: Chang3d!Rasp
+      SPLUNK_HEC_TOKEN: "11111111-1111-1111-1111-111111111111"
+      SPLUNK_GENERAL_TERMS: "--accept-sgt-current-at-splunk-com"
+    ports:
+      # Splunk Web (host 8001 — API already uses 8000)
+      - "8001:8000"
+      # HTTP Event Collector (HTTP, no TLS — local lab)
+      - "8088:8088"
+    volumes:
+      - rasp-splunk-data:/opt/splunk/var
+      - ./splunk/default.yml:/tmp/defaults/default.yml:ro
+      - ./splunk/apps/rasp_siem:/opt/splunk/etc/apps/rasp_siem
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:8088/services/collector/health/1.0 || curl -fsS http://127.0.0.1:8088/services/collector/health || exit 1",
+        ]
+      interval: 20s
+      timeout: 15s
+      retries: 60
+      start_period: 300s
+    restart: unless-stopped
+
 volumes:
   rasp-pg-data:
   rasp-grafana-data:
+  rasp-splunk-data:
