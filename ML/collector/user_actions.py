@@ -50,8 +50,15 @@ def login_with_typos(driver, user, pw, rng = None , n_typos = 0):
 
     login(driver, user, pw)
 
-def update_profile(driver, email):
+def refresh(driver, locator):
+    """press the screen's Refresh button and look at the result"""
+    tap(driver, locator)
+    think(READ_PAUSE)
+
+def update_profile(driver, email, refresh_first=False):
     open_tile(driver, S.TILE["profile"])
+    if refresh_first:
+        refresh(driver, S.PROFILE["refresh"])
     type_in(driver, S.PROFILE["email"], email)
     tap(driver, S.PROFILE["save_btn"])
     go_back(driver)
@@ -101,27 +108,48 @@ def signup(driver, user, pw, first, last, email="", phone="", address=""):
     find(driver, S.LOGIN["password"]) 
 
 # ----- Add & Transfer to beneficiary -------------
-def add_beneficiary(driver, name, account, bank):
+def add_beneficiary(driver, name, account, bank, refresh_first=False):
     open_tile(driver, S.TILE["beneficiaries"])
+    if refresh_first:
+        refresh(driver, S.BENEFICIARY["refresh"])
     type_in(driver, S.BENEFICIARY["name"], name)
     type_in(driver, S.BENEFICIARY["account"], account)
     type_in(driver, S.BENEFICIARY["bank"], bank)
     tap(driver, S.BENEFICIARY["add_btn"])
     go_back(driver)
 
-def transfer_to_beneficiary(driver, amount, account_from, bene_name):
+def delete_beneficiary(driver, name):
+    """open the list and press Delete on the row of this beneficiary"""
+    open_tile(driver, S.TILE["beneficiaries"])
+    tap(driver, (AppiumBy.XPATH, f'//*[@text="{name}"]/../..//*[@resource-id="{PKG}:id/button_deleteBeneficiary"]'))
+    think(READ_PAUSE)
+    go_back(driver)
+
+def press_get_accounts(driver):
+    tap(driver, S.TRANSFER["get_accounts"])
+    think(READ_PAUSE)      # wait for the accounts to fill in
+
+def transfer_to_beneficiary(driver, amount, account_from, bene_name, get_accounts=None):
+    """get_accounts: press "Get Accounts" "first" (before filling the form), "last" (after picking
+    the beneficiary, it then replaces both accounts), "twice" (both), or None (don't press it)"""
     open_tile(driver, S.TILE["transfer"])
+    if get_accounts in ("first", "twice"):
+        press_get_accounts(driver)
     type_in(driver, S.TRANSFER["from"], account_from)
     tap(driver, S.TRANSFER["pick_bene"])
     tap(driver, by_text(bene_name))
+    if get_accounts in ("last", "twice"):
+        press_get_accounts(driver)
     type_in(driver, S.TRANSFER["amount"], amount)
     think(REVIEW_PAUSE)
     tap(driver, S.TRANSFER["transfer_btn"])
     go_back(driver)
 
 # ------ Deposite & Bill payment ------
-def deposit(driver, account, amount):
+def deposit(driver, account, amount, refresh_first=False):
     open_tile(driver, S.TILE["deposit"])
+    if refresh_first:
+        refresh(driver, S.DEPOSIT["refresh"])
     type_in(driver, S.DEPOSIT["account_override"], account)
     type_in(driver, S.DEPOSIT["amount"], amount)
     think(REVIEW_PAUSE)
@@ -129,7 +157,7 @@ def deposit(driver, account, amount):
     go_back(driver)
 
 
-def pay_bill(driver, bill_category, from_account, bill_num, amount):
+def pay_bill(driver, bill_category, from_account, bill_num, amount, refresh_after=False):
     open_tile(driver, S.TILE["bill_payment"])
     select_from_dropdown(driver, S.BILL["category"], bill_category)
     select_from_dropdown(driver, S.BILL["from_account"], from_account)
@@ -137,6 +165,8 @@ def pay_bill(driver, bill_category, from_account, bill_num, amount):
     type_in(driver, S.BILL["amount"], amount)
     think(REVIEW_PAUSE)
     tap(driver, S.BILL["pay_btn"])
+    if refresh_after:      # check the bill history after paying (refreshing first races with the account list loading)
+        refresh(driver, S.BILL["refresh"])
     go_back(driver)
 
 
@@ -155,6 +185,22 @@ def set_ip_and_port(driver, ip="10.0.2.2", port="8888"):
     type_in(driver, S.PREFS["server_ip"], ip)
     type_in(driver, S.PREFS["server_port"], port)
     tap(driver, S.PREFS["submit"])
+
+def open_preferences(driver):
+    """menu > Preferences, look at the server settings, leave without changing them"""
+    tap(driver, S.HOME["menu"])
+    tap(driver, by_text("Preferences"))
+    think(READ_PAUSE)
+    go_back(driver)
+
+def logout(driver, via_menu=False):
+    """end the session with the Logout button, or with menu > Restart (also logs out)"""
+    if via_menu:
+        tap(driver, S.HOME["menu"])
+        tap(driver, by_text("Restart"))
+    else:
+        tap(driver, S.HOME["logout"])
+    think(2)
 
 # ------ user action with mistakes ------------
 def hide_keyboard(driver):

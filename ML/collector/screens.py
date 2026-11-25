@@ -57,11 +57,13 @@ BENEFICIARY = {
     "name": rid("editText_beneName"), 
     "account": rid("editText_beneAccount"),
     "bank": rid("editText_beneBank"), 
-    "add_btn": rid("button_addBeneficiary") 
+    "add_btn": rid("button_addBeneficiary"),
+    "refresh": rid("button_refreshBeneficiaries"),
 }
 TRANSFER = { 
     "amount": rid("editText_amount"),
     "pick_bene": rid("button_PickBeneficiary"),
+    "get_accounts": rid("button_CreateUser"),   # "Get Accounts" button (the app reuses this id)
     "transfer_btn": rid("button_Transfer"), 
     "from": rid("editText_from"), 
     "to": rid("editText_to") 
@@ -71,12 +73,14 @@ BILL = {
     "from_account": rid("spinner_payerAccount"),
     "number": rid("editText_billNumber"),
     "amount": rid("editText_billAmount"),
-    "pay_btn": rid("button_payBill") 
+    "pay_btn": rid("button_payBill"),
+    "refresh": rid("button_refreshBills"),
 }
 PROFILE = { 
     "email": rid("editText_email"), 
     "save_btn": rid("button_saveProfile"),
-    "change_pw_btn": rid("button_changePassword") 
+    "change_pw_btn": rid("button_changePassword"),
+    "refresh": rid("button_refreshProfile"),
 }
 CHANGE_PW = { 
     "new_pw": rid("editText_newPassword"),
@@ -85,5 +89,10 @@ CHANGE_PW = {
 DEPOSIT = { 
     "account_override": rid("editText_accountOverride"),
     "amount": rid("editText_depositAmount"), 
-    "confirm": rid("button_deposit") 
+    "confirm": rid("button_deposit"),
+    "refresh": rid("button_refreshAccounts"),
+}
+HOME = {
+    "logout": rid("button_Logout"),
+    "menu": (AppiumBy.ACCESSIBILITY_ID, "More options"),   # options menu: Preferences, Restart (= logout)
 }
