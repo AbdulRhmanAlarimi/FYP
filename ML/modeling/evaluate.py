@@ -26,7 +26,7 @@ from models import TabularModel, MarkovModel, LSTMModel, ZScoreBaseline
 RESULTS_DIR = os.path.join(ROOT, "results")
 TIMING = ["duration_s", "mean_gap_s", "std_gap_s"]
 USE_TIMING = False     # execlude the timing feature
-QUANTILE = 0.99         # alarm threshold
+QUANTILE = 0.995        # alarm threshold: 99.5% of normal validation scores
 
 SMOOTHING = [0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0]   # Markov smoothing values to try
 
@@ -49,18 +49,22 @@ def export_count_model(X_train, X_val, path):
         json.dump(model, f, indent=1)
 
 
-NEW_DATA_FROM = pd.Timestamp("2026-11-19", tz="UTC")   # the day the new benign collection started
+# the day each new benign collection started
+BATCH_STARTS = [pd.Timestamp("2026-11-19", tz="UTC"),
+                pd.Timestamp("2026-11-22", tz="UTC"),   # sessions that press "Get Accounts"
+                pd.Timestamp("2026-11-24", tz="UTC")]   # + preferences, logout/restart, refresh, delete beneficiary
 
 def temporal_split(labels, train=0.5, val=0.2):
     """
     split data into train, valdiation, test splits, attacks are always test.
-    old and new benign data are each split by time (oldest train, next validate, newest test),
+    every benign batch is split by time on its own (oldest train, next validate, newest test),
     so the new kinds of sessions also reach training
     """
     tr, va, te = [], [], []
     benign = labels[labels.label == "benign"].sort_values("started_at")
 
-    for part in [benign[benign.started_at < NEW_DATA_FROM], benign[benign.started_at >= NEW_DATA_FROM]]:
+    batch = benign.started_at.apply(lambda t: sum(t >= day for day in BATCH_STARTS))   # 0 = oldest batch
+    for _, part in benign.groupby(batch):
         a, b = int(len(part) * train), int(len(part) * (train + val))
         tr += list(part.index[:a]); va += list(part.index[a:b]); te += list(part.index[b:])
 
