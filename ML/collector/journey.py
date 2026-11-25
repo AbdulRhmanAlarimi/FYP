@@ -34,6 +34,19 @@ class UserInput:
         core = self.fake.password(length=9, special_chars=False, digits=True, upper_case=True, lower_case=True)
         return core + self.rng.choice("@#$%") + str(self.rng.randint(0, 9))
     
+# when the user presses "Get Accounts" in a transfer (None = never): 70% of transfers press it
+GET_ACCOUNTS = [(None, 3), ("first", 4), ("last", 3), ("twice", 1)]
+
+# small extra actions, drawn from their own random stream so a seed's main journey stays the same
+EXTRAS_SEED_OFFSET = 5555
+REFRESH_RATE = 0.2        # press the screen's Refresh button (deposit, bill, beneficiary, profile)
+DELETE_RATE = 0.25        # delete the beneficiary just added (it is then not used for transfers)
+PREFERENCES_RATE = 0.08   # open menu > Preferences after login, then go back
+SESSION_END = [(None, 13), ("button", 6), ("menu", 1)]   # just leave, press Logout, or menu > Restart
+
+def pick_get_accounts(rng):
+    return rng.choices([w for w, _ in GET_ACCOUNTS], weights=[p for _, p in GET_ACCOUNTS], k=1)[0]
+
 def amount(rng):
     r = rng.random()
     if r < 0.75: return rng.randrange(5, 100)
@@ -99,29 +112,34 @@ NEWUSER_TRANSITIONS = {
 # ---------------- Applying full sessions --------------------
 
 # applying one state
-def run_activity(driver, rng, input, state, payees, creds=None):
+def run_activity(driver, rng, input, state, payees, creds=None, xrng=None):
+    extra = lambda p: xrng is not None and xrng.random() < p      # one of the small extra actions?
     if state == "ACCOUNT":
         view_account_detalis(driver)
     if state == "HISTORY":
         sync_and_search_transaction_history(driver, rng.choice(SEARCH_TERMS))
     if state == "PROFILE":
-        update_profile(driver, input.email())
+        update_profile(driver, input.email(), refresh_first=extra(REFRESH_RATE))
     if state == "BENEFICIARY":
         name = input.name()
-        add_beneficiary(driver, name, rng.choice(PAYEE_ACCOUNTS), rng.choice(VALID_BANKS))
-        payees.append(name)
+        add_beneficiary(driver, name, rng.choice(PAYEE_ACCOUNTS), rng.choice(VALID_BANKS), refresh_first=extra(REFRESH_RATE))
+        if extra(DELETE_RATE):
+            delete_beneficiary(driver, name)
+        else:
+            payees.append(name)
     if state == "TRANSFER":
         if not payees:
             name = input.name()
             add_beneficiary(driver, name, rng.choice(PAYEE_ACCOUNTS), rng.choice(VALID_BANKS))
             payees.append(name)
         transfer_to_beneficiary(driver, str(amount(rng)),
-                                rng.choice(DINESH_ACCOUNTS), rng.choice(payees))
+                                rng.choice(DINESH_ACCOUNTS), rng.choice(payees),
+                                get_accounts=pick_get_accounts(rng))
     if state == "BILL":
         pay_bill(driver, rng.choice(BILL_CATEGORIES), rng.choice(DINESH_ACCOUNTS),
-                 str(rng.randint(1000000, 9999999)), str(amount(rng)))
+                 str(rng.randint(1000000, 9999999)), str(amount(rng)), refresh_after=extra(REFRESH_RATE))
     if state == "DEPOSIT":
-        deposit(driver, rng.choice(DINESH_ACCOUNTS), str(amount(rng)))
+        deposit(driver, rng.choice(DINESH_ACCOUNTS), str(amount(rng)), refresh_first=extra(REFRESH_RATE))
     if state == "STATEMENT":
         view_statement(driver)
     if state == "CHANGEPW" and creds is not None:
@@ -137,7 +155,7 @@ def pick_next_state(rng, state, transition):
 
     return rng.choices(states, weights = weights, k = 1)[0]
 
-def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, max_steps, creds=None):
+def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, max_steps, creds=None, xrng=None):
     path, steps, n_mistakes = [], 0, 0
     state = pick_next_state(rng, "START", transitions)
 
@@ -147,11 +165,22 @@ def go_through_full_session(driver, rng, mrng, user_input, transitions, payees, 
             abandon_form(driver, state, field, text)
             n_mistakes += 1
         else:
-            run_activity(driver, rng, user_input, state, payees, creds)
+            run_activity(driver, rng, user_input, state, payees, creds, xrng)
         path.append(state)                              
         steps += 1
         state = pick_next_state(rng, state, transitions)
     return path, n_mistakes
+
+def start_extras(driver, xrng):
+    """right after login: sometimes look at the Preferences screen"""
+    if xrng.random() < PREFERENCES_RATE:
+        open_preferences(driver)
+
+def end_session(driver, xrng):
+    """how the user leaves: close the app, press Logout, or menu > Restart"""
+    how = xrng.choices([h for h, _ in SESSION_END], weights=[w for _, w in SESSION_END], k=1)[0]
+    if how:
+        logout(driver, via_menu=(how == "menu"))
 
 # --------------- Two user types flow ------------------
 
@@ -164,8 +193,11 @@ def login_session_flow(seed, user="dinesh", pw="Dinesh@123$", max_steps=10, debu
         n_typos = pick_typos(mrng)
         login_with_typos(driver, user, pw, mrng, n_typos)
         think(3)
+        xrng = random.Random(seed + EXTRAS_SEED_OFFSET)
+        start_extras(driver, xrng)
         path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, 
-                                       FULL_TRANSITIONS, payees, max_steps)
+                                       FULL_TRANSITIONS, payees, max_steps, xrng=xrng)
+        end_session(driver, xrng)
     finally:
         driver.quit()
 
@@ -191,7 +223,10 @@ def signup_session_flow(seed, max_steps = 4, debug = False):
         restart_and_login(driver, username, password, mrng, n_typos)
         think(3)
         creds = {"user": username, "pw": password}
-        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, NEWUSER_TRANSITIONS, payees, max_steps, creds=creds)
+        xrng = random.Random(seed + EXTRAS_SEED_OFFSET)
+        start_extras(driver, xrng)
+        path, n_mistakes = go_through_full_session(driver, rng, mrng, user_input, NEWUSER_TRANSITIONS, payees, max_steps, creds=creds, xrng=xrng)
+        end_session(driver, xrng)
     finally:
         driver.quit()
 
